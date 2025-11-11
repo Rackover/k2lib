@@ -344,6 +344,42 @@ namespace LouveSystems.K2.Lib
 
             result.OrderScores();
 
+            bool isAtMaxTurnover = gameState.councilsPassed >= rules.voting.turnoverPercentagePerCouncil.Length - 1;
+            if (rules.voting.forceMajorityEventually && isAtMaxTurnover) {
+                if (result.HasMajorityWinner(out byte _)) { // Nothing to do
+                }
+                else {
+                    Logger.Info($"We are at max turnover and so a majority MUST be reached!");
+
+                    Logger.Info($"Adding all wasted votes ({result.wastedVotes} votes) to current poll leader (Realm {result.scores[0].realmIndex} with {result.scores[0].totalVotes} votes)");
+                    result.scores[0].totalVotes += result.wastedVotes;
+                    result.wastedVotes = 0;
+                    Logger.Info($"Poll leader now has {result.scores[0].totalVotes} votes (Realm {result.scores[0].realmIndex})");
+
+                    while (!result.HasMajorityWinner(out byte _)) {
+
+                        // take votes from others
+                        for (int i = result.scores.Length-2; i >= 0; i --) {
+
+                            if (result.scores[i].totalVotes > 0) {
+                                result.scores[i].totalVotes--;
+                                result.scores[0].totalVotes++;
+                                
+                                if (result.scores[i].totalVotes <= 0 && 
+                                    result.scores[i].wonCriterias.Count > 0) {
+                                    result.scores[i].wonCriterias.Clear();
+                                }
+
+                                Logger.Info($"Transferring vote from realm {result.scores[i].realmIndex} to realm {result.scores[0].realmIndex} (Poll leader now has {result.scores[0].totalVotes} votes)");
+                            }
+                        }
+
+                       
+                        Logger.Info($"Poll leader now has {result.scores[0].totalVotes} votes (Realm {result.scores[0].realmIndex})");
+                    }
+                }
+            }
+
             Logger.Info($"Final voting results: {result.Dump()}");
         }
 

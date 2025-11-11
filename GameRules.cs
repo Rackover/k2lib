@@ -6,6 +6,7 @@ namespace LouveSystems.K2.Lib
     [System.Serializable]
     public class GameRules : IBinarySerializableWithVersion
     {
+        public const byte VERSION = 2;
 
         [System.Serializable]
         public struct GlobalFactionSettings : IBinarySerializableWithVersion
@@ -119,6 +120,8 @@ namespace LouveSystems.K2.Lib
         [System.Serializable]
         public class VotingRules : IBinarySerializableWithVersion
         {
+            public const byte VERSION = 2;
+
             public int voterCount = 33;
 
             public byte[] criteriasUsedPerVote = new byte[]{
@@ -135,8 +138,12 @@ namespace LouveSystems.K2.Lib
 
             public VotingSettings[] votingCriterias;
 
+            public bool forceMajorityEventually = false;
+
             public void Read(byte version, BinaryReader from)
             {
+                version = from.ReadByte();
+
                 voterCount = from.ReadInt32();
                 criteriasUsedPerVote = from.ReadBytes();
                 turnoverPercentagePerCouncil = from.ReadBytes();
@@ -145,10 +152,16 @@ namespace LouveSystems.K2.Lib
                 for (int i = 0; i < votingCriterias.Length; i++) {
                     votingCriterias[i].Read(version, from);
                 }
+
+                if (version >= 2) {
+                    forceMajorityEventually = from.ReadBoolean();
+                }
             }
 
             public void Write(BinaryWriter into)
             {
+                into.Write(VERSION);
+
                 into.Write(voterCount);
                 into.WriteBytes(criteriasUsedPerVote);
                 into.WriteBytes(turnoverPercentagePerCouncil);
@@ -157,6 +170,8 @@ namespace LouveSystems.K2.Lib
                 for (int i = 0; i < votingCriterias.Length; i++) {
                     votingCriterias[i].Write(into);
                 }
+
+                into.Write(forceMajorityEventually);
             }
         }
 
@@ -216,6 +231,8 @@ namespace LouveSystems.K2.Lib
 
         public void Write(BinaryWriter into)
         {
+            into.Write(VERSION);
+
             into.Write(initialRealmsSize);
             into.Write(additionalRealmsCount);
             into.Write(councilRealmRegionSize);
@@ -257,6 +274,8 @@ namespace LouveSystems.K2.Lib
 
         public void Read(byte version, BinaryReader from)
         {
+            version = from.ReadByte();
+
             initialRealmsSize = from.ReadByte();
             additionalRealmsCount = from.ReadByte();
             councilRealmRegionSize = from.ReadByte();
