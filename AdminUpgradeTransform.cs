@@ -20,6 +20,11 @@ namespace LouveSystems.K2.Lib
 
         public AdminUpgradeTransform() { }
 
+        public override string ToString()
+        {
+            return $"{GetType()} on realm {realmToUpgrade} for {SilverCost} silver coins";
+        }
+
         protected override void ReadInternal(BinaryReader from)
         {
             base.ReadInternal(from);

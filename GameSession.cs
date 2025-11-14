@@ -97,12 +97,19 @@ namespace LouveSystems.K2.Lib
 
         public bool HasRegionPlayed(int regionIndex)
         {
+            return HasRegionPlayed(regionIndex, out _);
+        }
+
+        public bool HasRegionPlayed(int regionIndex, out RegionRelatedTransform transform)
+        {
             for (int i = 0; i < awaitingTransforms.Count; i++) {
                 if (awaitingTransforms[i] is RegionRelatedTransform attack && attack.actingRegionIndex == regionIndex) {
+                    transform = attack;
                     return true;
                 }
             }
 
+            transform = default;
             return false;
         }
 
@@ -177,12 +184,28 @@ namespace LouveSystems.K2.Lib
 
         private bool AddTransformIfPossible(Transform transform)
         {
-            if (transform is RegionRelatedTransform regionTransform &&
-                HasRegionPlayed(regionTransform.actingRegionIndex) &&
-                !gameState.world.Regions[regionTransform.actingRegionIndex].CanReplay(Rules) &&
-                !(regionTransform is RegionAttackRegionTransform atk && atk.isExtendedAttack)) {
-                Logger.Warn($"Discarding transform {transform} because this region cannot replay!");
-                return false;
+            Logger.Trace($"Trying to add transform {transform}...");
+
+            if (transform is RegionRelatedTransform regionTransform) {
+                if (HasRegionPlayed(regionTransform.actingRegionIndex, out RegionRelatedTransform otherTransform)) {
+                    Logger.Trace($"Region {regionTransform.actingRegionIndex} has already played, but...");
+                    if (gameState.world.Regions[regionTransform.actingRegionIndex].CanReplay(Rules)) {
+                        // OK
+                        Logger.Trace($"... it can replay, so that's OK.");
+                    }
+                    else if (regionTransform is RegionAttackRegionTransform atk && atk.isExtendedAttack) {
+                        Logger.Trace($"... it's an extended attack, so we will allow it.");
+                    }
+                    else if (otherTransform is RegionAttackRegionTransform otherAtk && otherAtk.isExtendedAttack) {
+                        Logger.Trace($"... the previous played transform on this region was an extended attack ({otherAtk}) so we allow it.");
+                    }
+                    else {
+                        Logger.Trace($"... it's unacceptable! It has at least one other ongoing transform ({otherTransform}), it cannot replay ({gameState.world.Regions[regionTransform.actingRegionIndex]}) and this is not an extended attack!!");
+                        Logger.Warn($"Discarding transform {transform} because this region cannot replay!");
+
+                        return false;
+                    }
+                }
             }
 
             if (transform.CompatibleWith(AwaitingTransforms)) {

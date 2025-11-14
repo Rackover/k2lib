@@ -66,7 +66,7 @@ namespace LouveSystems.K2.Lib
 
         public override string ToString()
         {
-            return $"{Kind} {building} by {constructingRealmIndex} on {actingRegionIndex} for {silverCost}";
+            return $"{Kind} {building} by {constructingRealmIndex} on region {actingRegionIndex} for {silverCost} silver";
         }
     }
 }

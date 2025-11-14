@@ -39,8 +39,10 @@ namespace LouveSystems.K2.Lib
         public void ComputeEffects(ManagedRandom random, IReadOnlyList<Transform> transformsUnordered, out ITransformEffect[] effects)
         {
             Logger.Trace($"Computing {transformsUnordered.Count} UNORDERED transforms on {this}");
-            for (int i = 0; i < transformsUnordered.Count; i++) {
-                Logger.Trace($"{i}: {transformsUnordered[i]}");
+            List<string> debugStrings = transformsUnordered.Select(o => o.ToString()).OrderBy((o)=>o).ToList();
+
+            for (int i = 0; i < debugStrings.Count; i++) {
+                Logger.Trace($"{i}: {debugStrings[i]}");
             }
 
             List<ITransformEffect> effectsList = new List<ITransformEffect>();
@@ -58,8 +60,44 @@ namespace LouveSystems.K2.Lib
                 GameState attacksComputationDuplicate = Duplicate();
                 ApplyEffects(effectsList, ref attacksComputationDuplicate);
 
+                int attacksStart = effectsList.Count;
+
                 var attacks = TakeAttacks(attacksComputationDuplicate.world, remainingTransforms);
                 PlayAttacks(in attacksComputationDuplicate.world, random, attacks, effectsList);
+
+                // Order subjugations AFTER attacks
+                List<ITransformEffect.ConquestEffect> conquestsThatLeadToSubjugations = new List<ITransformEffect.ConquestEffect>();
+                HashSet<int> queuedEffectGroup = new HashSet<int>();
+                HashSet<byte> subjugationTargets = new HashSet<byte>();
+
+                for (int i = attacksStart; i < effectsList.Count; i++) {
+
+                    if (i < effectsList.Count-1) {
+                        if (effectsList[i] is ITransformEffect.ConquestEffect conq && 
+                            effectsList[i+1] is ITransformEffect.SubjugationEffect subjugation &&
+                            subjugation.attackingRealmIndex ==conq.attackingRealm) {
+
+                            queuedEffectGroup.Add(i);
+
+                            subjugationTargets.Add(subjugation.targetRealmIndex);
+                        }
+                    }
+                }
+
+                for (int i = effectsList.Count-1; i >= 0; i--) {
+                    if (queuedEffectGroup.Contains(i)) {
+                        effectsList.Add(effectsList[i + 1]);
+                        effectsList.Add(effectsList[i]);
+                        effectsList.RemoveAt(i+1);
+                        effectsList.RemoveAt(i);
+                    }
+                }
+
+                // Cannot subjugate if you're the target of a subjugation
+                effectsList.RemoveAll(o => 
+                    o is ITransformEffect.SubjugationEffect sub &&
+                    subjugationTargets.Contains(sub.attackingRealmIndex)
+                );
             }
 
             // Border gore
@@ -108,17 +146,17 @@ namespace LouveSystems.K2.Lib
                 PlayConstructions(in world, constructions, effectsList);
             }
 
-            // Others
+            // Others - We play them first to avoid visual oddities
             {
                 foreach (var t in remainingTransforms) {
                     if (t is AdminUpgradeTransform adminUpgrade) {
-                        effectsList.Add(new ITransformEffect.AdministrationUpgradeEffect() {
+                        effectsList.Insert(0, new ITransformEffect.AdministrationUpgradeEffect() {
                             realmIndex = adminUpgrade.realmToUpgrade,
                             silverPricePaid = adminUpgrade.silverPricePaid
                         });
                     }
                     else if (t is PayFavoursTransform payFavoursTransform) {
-                        effectsList.Add(new ITransformEffect.FavourPaymentEffect() {
+                        effectsList.Insert(0, new ITransformEffect.FavourPaymentEffect() {
                             realmIndex = payFavoursTransform.realmToFavour,
                             silverPricePaid = payFavoursTransform.silverPricePaid
                         });

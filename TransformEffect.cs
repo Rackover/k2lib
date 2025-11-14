@@ -22,6 +22,11 @@ namespace LouveSystems.K2.Lib
             public int silverLooted;
             public bool hadBuilding;
 
+            public override string ToString()
+            {
+                return $"{GetType()} by realm {attackingRealm} on region {regionIndex} from regions [{string.Join(", ", attackingRegionsIndices)}], changing ownership from {previousOwningRealm} to {newOwningRealm} - coin flip? {isACoinFlip}, to whom? [{string.Join(", ", otherMajorityAttackersWhoLostCoinFlip)}]. Region had building? {hadBuilding}. Looted anything? {silverLooted} silver.";
+            }
+
             public void Apply(in GameState previous, ref GameState next)
             {
                 if (Success) {
