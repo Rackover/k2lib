@@ -9,7 +9,6 @@ namespace LouveSystems.K2.Lib
     {
         public event Action<Transform> OnTransformAdded;
 
-        public ManagedRandom Random { get; }
 
         public GameRules Rules => parameters;
 
@@ -18,6 +17,10 @@ namespace LouveSystems.K2.Lib
         public IReadOnlyList<Transform> AwaitingTransforms => awaitingTransforms;
 
         public IReadOnlyDictionary<byte, SessionPlayer> SessionPlayers => sessionPlayers;
+
+        public ManagedRandom ComputersRandom { get; }
+
+        protected ManagedRandom Random { get; }
 
         private readonly List<Transform> awaitingTransforms = new List<Transform>();
 
@@ -33,6 +36,7 @@ namespace LouveSystems.K2.Lib
             this.parameters = parameters;
 
             this.Random = new ManagedRandom(seed);
+            this.ComputersRandom = new ManagedRandom(seed);
 
             gameState = new GameState(party, parameters);
 
