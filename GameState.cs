@@ -86,8 +86,8 @@ namespace LouveSystems.K2.Lib
 
                 for (int i = effectsList.Count-1; i >= 0; i--) {
                     if (queuedEffectGroup.Contains(i)) {
-                        effectsList.Add(effectsList[i + 1]);
                         effectsList.Add(effectsList[i]);
+                        effectsList.Add(effectsList[i + 1]);
                         effectsList.RemoveAt(i+1);
                         effectsList.RemoveAt(i);
                     }
@@ -304,46 +304,61 @@ namespace LouveSystems.K2.Lib
             }
 
             List<int> connectedRealmRegions = new List<int>();
-            for (byte realmIndex = 0; realmIndex < world.Realms.Count; realmIndex++) {
+
+            List<byte> alliedRealmsCache = new List<byte>();
+
+            for (byte startingRealmIndex = 0; startingRealmIndex < world.Realms.Count; startingRealmIndex++) {
                 connectedRealmRegions.Clear();
-                Realm realm = world.Realms[realmIndex];
-                if (world.GetCapitalOfRealm(realmIndex, out int capitalRegionIndex)) {
-                    world.GetAllConnectedRegionsOfSameOwner(capitalRegionIndex, connectedRealmRegions);
+                Realm realm = world.Realms[startingRealmIndex];
 
-                    var faction = world.GetRealmFaction(realmIndex);
+                alliedRealmsCache.Clear();
+                world.GetAlliedOrSubjugatedRealms(startingRealmIndex, alliedRealmsCache);
 
-                    if (faction.HasFlagSafe(EFactionFlag.FortsCountAsCapital)) {
-                        List<int> remainingTerritories = new List<int>(allRegionsForRealm[realmIndex]);
+                List<int> remainingTerritories = new List<int>(allRegionsForRealm[startingRealmIndex]);
+
+                for (int realmIndexIndex = 0; realmIndexIndex < alliedRealmsCache.Count; realmIndexIndex++) {
+                    byte realmIndex = alliedRealmsCache[realmIndexIndex];
+
+                    bool isAlliedRegion(Region region)
+                    {
+                        return region.isOwned && alliedRealmsCache.Contains(region.ownerIndex);
+                    }
+
+                    if (world.GetCapitalOfRealm(realmIndex, out int capitalRegionIndex)) {
+                        world.GetAllConnectedRegions(capitalRegionIndex, connectedRealmRegions, isAlliedRegion);
+
+                        var faction = world.GetRealmFaction(realmIndex);
+
                         remainingTerritories.RemoveAll(connectedRealmRegions.Contains);
 
-                        // Add regions that are connected to a fort
-                        for (int territoryIndexIndex = 0; territoryIndexIndex < remainingTerritories.Count; territoryIndexIndex++) {
-                            int regionIndex = remainingTerritories[territoryIndexIndex];
+                        if (faction.HasFlagSafe(EFactionFlag.FortsCountAsCapital)) {
 
-                            // Mark these as connected if they have at least one fort
-                            if (world.Regions[regionIndex].buildings.HasFlagSafe(EBuilding.Fort)) {
-                                world.GetAllConnectedRegionsOfSameOwner(regionIndex, connectedRealmRegions);
-                                remainingTerritories.RemoveAll(connectedRealmRegions.Contains);
-                                territoryIndexIndex = -1; // Set to minus one to restart loop. Then continue
-                                continue;
+                            // Add regions that are connected to a fort
+                            for (int territoryIndexIndex = 0; territoryIndexIndex < remainingTerritories.Count; territoryIndexIndex++) {
+                                int regionIndex = remainingTerritories[territoryIndexIndex];
+
+                                // Mark these as connected if they have at least one fort
+                                if (world.Regions[regionIndex].buildings.HasFlagSafe(EBuilding.Fort)) {
+                                    world.GetAllConnectedRegions(regionIndex, connectedRealmRegions, isAlliedRegion);
+                                    remainingTerritories.RemoveAll(connectedRealmRegions.Contains);
+                                    territoryIndexIndex = -1; // Set to minus one to restart loop. Then continue
+                                    continue;
+                                }
                             }
                         }
-                    }
 
-                    if (connectedRealmRegions.Count < allRegionsForRealm[realmIndex].Count) {
-                        // That realm has border gore that we must solve
-                        var allRegions = new List<int>(allRegionsForRealm[realmIndex]);
-                        allRegions.RemoveAll(connectedRealmRegions.Contains);
+                        if (remainingTerritories.Count > 0) {
+                            // That realm has border gore that we must solve
+                            for (int i = 0; i < remainingTerritories.Count; i++) {
+                                int regionIndex = remainingTerritories[i];
+                                SolveBorderGoreForRegion(world, random, regionIndex, effectsToAdd, depth);
 
-                        for (int allRegionIndex = 0; allRegionIndex < allRegions.Count; allRegionIndex++) {
-                            int regionIndex = allRegions[allRegionIndex];
-                            SolveBorderGoreForRegion(world, random, regionIndex, effectsToAdd, depth);
-
-                            totalOwnedRegions.Add(regionIndex);
+                                totalOwnedRegions.Add(regionIndex);
+                            }
                         }
-                    }
-                    else if (connectedRealmRegions.Count > allRegionsForRealm[realmIndex].Count) {
-                        throw new System.Exception($"Something went wrong with border gore calculation");
+                        //else if (connectedRealmRegions.Count > allRegionsForRealm[realmIndex].Count) {
+                        //    throw new System.Exception($"Something went wrong with border gore calculation");
+                        //}
                     }
                 }
             }

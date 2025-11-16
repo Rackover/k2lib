@@ -152,6 +152,42 @@ namespace LouveSystems.K2.Lib
             return true;
         }
 
+        public bool GetOwnerOfRegion(int regionIndex, out byte owningPlayerId, out byte subjugatingPlayerId)
+        {
+            bool isOwned = GetOwnerOfRegion(regionIndex, out subjugatingPlayerId, subjugator: true);
+            isOwned |= GetOwnerOfRegion(regionIndex, out owningPlayerId, subjugator: false);
+
+            return isOwned;
+        }
+
+        public bool GetOwnerOfRegion(int regionIndex, out byte owningPlayerId, bool subjugator = true)
+        {
+            if (CurrentGameState.world.Regions[regionIndex].GetOwner(out byte owningRealm)) {
+                return GetOwnerOfRealm(owningRealm, out owningPlayerId, subjugator);
+            }
+
+            owningPlayerId = default;
+            return false;
+        }
+
+        public bool GetOwnerOfRealm(int realmIndex, out byte owningPlayerId, bool subjugator = true)
+        {
+            if (subjugator &&
+                CurrentGameState.world.Realms[realmIndex].IsSubjugated(out byte subjugatingRealmIndex)) {
+                realmIndex = subjugatingRealmIndex;
+            }
+
+            foreach (var player in SessionPlayers) {
+                if (player.Value.RealmIndex == realmIndex) {
+                    owningPlayerId = player.Key;
+                    return true;
+                }
+            }
+
+            owningPlayerId = 0;
+            return false;
+        }
+
         protected void ResolveTransformsToEffects(out ITransformEffect[] effects)
         {
             effects = new ITransformEffect[0];
@@ -190,29 +226,7 @@ namespace LouveSystems.K2.Lib
         {
             Logger.Trace($"Trying to add transform {transform}...");
 
-            if (transform is RegionRelatedTransform regionTransform) {
-                if (HasRegionPlayed(regionTransform.actingRegionIndex, out RegionRelatedTransform otherTransform)) {
-                    Logger.Trace($"Region {regionTransform.actingRegionIndex} has already played, but...");
-                    if (gameState.world.Regions[regionTransform.actingRegionIndex].CanReplay(Rules)) {
-                        // OK
-                        Logger.Trace($"... it can replay, so that's OK.");
-                    }
-                    else if (regionTransform is RegionAttackRegionTransform atk && atk.isExtendedAttack) {
-                        Logger.Trace($"... it's an extended attack, so we will allow it.");
-                    }
-                    else if (otherTransform is RegionAttackRegionTransform otherAtk && otherAtk.isExtendedAttack) {
-                        Logger.Trace($"... the previous played transform on this region was an extended attack ({otherAtk}) so we allow it.");
-                    }
-                    else {
-                        Logger.Trace($"... it's unacceptable! It has at least one other ongoing transform ({otherTransform}), it cannot replay ({gameState.world.Regions[regionTransform.actingRegionIndex]}) and this is not an extended attack!!");
-                        Logger.Warn($"Discarding transform {transform} because this region cannot replay!");
-
-                        return false;
-                    }
-                }
-            }
-
-            if (transform.CompatibleWith(AwaitingTransforms)) {
+            if (transform.CompatibleWith(this)) {
                 Logger.Info($"Adding transform {transform}");
                 awaitingTransforms.Add(transform);
                 OnTransformAdded?.Invoke(transform);

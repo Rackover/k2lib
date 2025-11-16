@@ -74,7 +74,7 @@ namespace LouveSystems.K2.Lib
             WriteInternal(into);
         }
 
-        public virtual bool CompatibleWith(IReadOnlyList<Transform> existingTransforms) {
+        public virtual bool CompatibleWith(GameSession existingTransforms) {
             return true;
         }
 

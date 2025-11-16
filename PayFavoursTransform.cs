@@ -33,5 +33,14 @@ namespace LouveSystems.K2.Lib
             into.Write(realmToFavour);
             into.Write(silverPricePaid);
         }
+        public override bool CompatibleWith(GameSession session)
+        {
+            if (!session.GetOwnerOfRealm(realmToFavour, out byte owningPlayerId, subjugator: false) ||
+                !session.SessionPlayers[owningPlayerId].CanPayForFavours()) {
+                return false;
+            }
+
+            return base.CompatibleWith(session); 
+        }
     }
 }

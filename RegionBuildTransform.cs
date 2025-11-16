@@ -35,10 +35,10 @@ namespace LouveSystems.K2.Lib
             return false;
         }
 
-        public override bool CompatibleWith(IReadOnlyList<Transform> existingTransforms)
+        public override bool CompatibleWith(GameSession session)
         {
-            for (int i = 0; i < existingTransforms.Count; i++) {
-                if (existingTransforms[i] is RegionRelatedTransform otherTransform) {
+            for (int i = 0; i < session.AwaitingTransforms.Count; i++) {
+                if (session.AwaitingTransforms[i] is RegionRelatedTransform otherTransform) {
                     if (otherTransform.actingRegionIndex == actingRegionIndex) {
                         return false;
                     }

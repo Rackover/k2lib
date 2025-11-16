@@ -484,7 +484,7 @@ namespace LouveSystems.K2.Lib
             return false;
         }
 
-        public void GetAllConnectedRegionsOfSameOwner(int startingPoint, in List<int> regionsIndices)
+        public void GetAllConnectedRegions(int startingPoint, in List<int> regionsIndices, Predicate<Region> filter)
         {
             regionsIndices.Add(startingPoint);
             int[] neighbors = GetNeighboringRegions(startingPoint);
@@ -497,19 +497,23 @@ namespace LouveSystems.K2.Lib
                     continue;
                 }
 
-                if (hasOwner) {
-                    if (!regions[neighbors[i]].IsOwnedBy(owner)) {
-                        continue;
-                    }
-                }
-                else {
-                    if (regions[neighbors[i]].isOwned) {
-                        continue;
-                    }
+                if (!filter(regions[neighbors[i]])) {
+                    continue;
                 }
 
-                GetAllConnectedRegionsOfSameOwner(neighbors[i], in regionsIndices);
+                GetAllConnectedRegions(neighbors[i], in regionsIndices, filter);
             }
+        }
+
+        public void GetAllConnectedRegionsOfSameOwner(int startingPoint, in List<int> regionsIndices)
+        {
+            bool hasOwner = regions[startingPoint].isOwned;
+            byte owner = regions[startingPoint].ownerIndex;
+
+            GetAllConnectedRegions(startingPoint, regionsIndices, (r) => 
+                (!r.isOwned && !hasOwner) ||
+                (hasOwner && r.IsOwnedBy(owner))
+            );
         }
 
         public Position Position(int index)

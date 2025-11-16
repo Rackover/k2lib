@@ -1,6 +1,7 @@
 ﻿
 namespace LouveSystems.K2.Lib
 {
+    using System.Collections.Generic;
     using System.IO;
 
     public class AdminUpgradeTransform : Transform
@@ -23,6 +24,16 @@ namespace LouveSystems.K2.Lib
         public override string ToString()
         {
             return $"{GetType()} on realm {realmToUpgrade} for {SilverCost} silver coins";
+        }
+
+        public override bool CompatibleWith(GameSession session)
+        {
+            if (!session.GetOwnerOfRealm(realmToUpgrade, out byte owningPlayerId, subjugator: false) ||
+                !session.SessionPlayers[owningPlayerId].CanUpgradeAdministration()) {
+                return false;
+            }
+
+            return base.CompatibleWith(session);
         }
 
         protected override void ReadInternal(BinaryReader from)

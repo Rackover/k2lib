@@ -189,11 +189,14 @@ namespace LouveSystems.K2.Lib
                 realms[attackingRealmIndex] = originalRealm;
                 realms[targetRealmIndex] = targetRealm;
 
+                Logger.Trace($"Realm {targetRealmIndex} ({realms[targetRealmIndex]} is now subjugated by realm {attackingRealmIndex} ({realms[attackingRealmIndex]})");
+
                 // Also avoid nesting subjugations
                 for (int i = 0; i < realms.Length; i++) {
                     if (realms[i].IsSubjugated(out byte subjugator) && subjugator == targetRealmIndex) {
                         // They're mine nows!
                         realms[i].subjugatedBy = attackingRealmIndex;
+                        Logger.Trace($"Realm {i} ({realms[i]} is now ALSO subjugated by realm {attackingRealmIndex} ({realms[attackingRealmIndex]}) because their prior subjugator was realm {targetRealmIndex}, who's getting subjugated right now");
                     }
                 }
             }
