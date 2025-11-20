@@ -610,19 +610,13 @@ namespace LouveSystems.K2.Lib
                 remainingBuilds.RemoveAt(0);
 
                 byte supposedOwner = build.constructingRealmIndex;
-
-                if (world.Regions[build.actingRegionIndex].IsOwnedBy(supposedOwner)) {
-
-                    Logger.Trace($"Ownership for {build} is correct, queueing effect!");
-
-                    effects.Add(new ITransformEffect.ConstructionEffect() {
-                        building = build.building,
-                        regionIndex = build.actingRegionIndex,
-                        forOwner = supposedOwner,
-                        silverPricePaid = build.SilverCost,
-                        isFactionHighlight = build.IsPrioritized(in world)
-                    });
-                }
+                effects.Add(new ITransformEffect.ConstructionEffect() {
+                    building = build.building,
+                    regionIndex = build.actingRegionIndex,
+                    forOwner = supposedOwner,
+                    silverPricePaid = build.SilverCost,
+                    isFactionHighlight = build.IsPrioritized(in world)
+                });
             }
         }
 
