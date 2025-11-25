@@ -335,16 +335,23 @@ namespace LouveSystems.K2.Lib
 
             foreach (var off in offsets) {
                 for (int distance = 1; distance <= range; distance++) {
-                    AxialPosition neighborPosition = axialCenter + off * distance;
+                    Position neighborPosition = (axialCenter + off * distance).ToPosition();
 
-                    int neighborIndex = Index(neighborPosition.ToPosition());
-
-                    if (IsValidIndex(neighborIndex) && CanRealmAttackRegion(regions[regionIndex].ownerIndex, neighborIndex)) {
-                        attackTargets.Add(neighborIndex);
-                    }
-                    else {
+                    if (!IsValidPosition(neighborPosition)) {
                         break;
                     }
+
+                    int neighborIndex = Index(neighborPosition);
+
+                    if (!IsValidIndex(neighborIndex)) {
+                        break;
+                    }
+
+                    if (!CanRealmAttackRegion(regions[regionIndex].ownerIndex, neighborIndex)) {
+                        break;
+                    }
+
+                    attackTargets.Add(neighborIndex);
                 }
             }
 
@@ -788,6 +795,11 @@ namespace LouveSystems.K2.Lib
         private int Index(in Position position)
         {
             return position.x + position.y * SideLength;
+        }
+
+        private bool IsValidPosition(in Position position)
+        {
+            return position.x >= 0 && position.y >= 0 && position.x < SideLength && position.y < SideLength;
         }
 
         private bool IsValidIndex(int index)
