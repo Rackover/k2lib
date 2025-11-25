@@ -13,6 +13,12 @@ namespace LouveSystems.K2.Lib
             public int q;
             public int r;
 
+            public AxialPosition(int q, int r)
+            {
+                this.q = q;
+                this.r = r;
+            }
+
             public AxialPosition(Position p)
             {
                 q = p.x - (p.y - (p.y & 1)) / 2;
@@ -25,7 +31,26 @@ namespace LouveSystems.K2.Lib
                 var y = r;
                 return new Position(x, y);
             }
+
+            public static AxialPosition operator +(AxialPosition left, AxialPosition right)
+            {
+                return new AxialPosition(left.q + right.q, left.r + right.r);
+            }
+
+            public static AxialPosition operator *(AxialPosition left, int right)
+            {
+                return new AxialPosition(left.q * right, left.r * right);
+            }
         }
+
+        private static readonly IReadOnlyList<AxialPosition> AxialDirectionVectors = new AxialPosition[] {
+            new AxialPosition(+1,  0),
+            new AxialPosition( 0, +1),
+            new AxialPosition(+1, -1),
+            new AxialPosition(-1,  0),
+            new AxialPosition( 0, -1),
+            new AxialPosition(-1, +1),
+        };
 
         public IReadOnlyList<Region> Regions => regions;
         public IReadOnlyList<Realm> Realms => realms;
@@ -292,6 +317,9 @@ namespace LouveSystems.K2.Lib
 
         public bool GetAttackTargetsForRegionNoAlloc(int regionIndex, bool canExtendRange, in List<int> attackTargets)
         {
+            if (regions[regionIndex].inert)
+                return false;
+
             int countBefore = attackTargets.Count;
 
             int range = 1;
@@ -303,40 +331,29 @@ namespace LouveSystems.K2.Lib
                 }
             }
 
-            HashSet<int> doneRegions = new HashSet<int>();
-            List<int> regionIndicesToCheck = new List<int>() { regionIndex };
+            Position position = Position(regionIndex);
+            AxialPosition axialCenter = new AxialPosition(position);
 
-            for (int depth = 0; depth < range; depth++) {
-                int[] regionIndicesForThisDepth = regionIndicesToCheck.ToArray();
-                regionIndicesToCheck.Clear();
-                for (int regionIndexIndex = 0; regionIndexIndex < regionIndicesForThisDepth.Length; regionIndexIndex++) {
-                    int attackSourceIndex = regionIndicesForThisDepth[regionIndexIndex];
+            for (int i = 0; i < AxialDirectionVectors.Count; i++) {
+                AxialPosition direction = AxialDirectionVectors[i];
+                for (int distance = 1; distance <= range; distance++) {
+                    Position neighborPosition = (axialCenter + direction * distance).ToPosition();
 
-                    doneRegions.Add(attackSourceIndex);
-
-                    int start = attackTargets.Count;
-                    GetNeighboringRegions(attackSourceIndex, attackTargets);
-
-                    for (int i = start; i < attackTargets.Count; i++) {
-                        int neighborIndex = attackTargets[i];
-                        bool canAttack = true;
-
-                        if (regions[regionIndex].inert) {
-                            canAttack = false;
-                        }
-
-                        canAttack &= CanRealmAttackRegion(regions[regionIndex].ownerIndex, neighborIndex);
-
-                        if (canAttack) {
-                            if (depth < range - 1 && !doneRegions.Contains(neighborIndex)) {
-                                regionIndicesToCheck.Add(neighborIndex);
-                            }
-                        }
-                        else {
-                            attackTargets.RemoveAt(i);
-                            i--;
-                        }
+                    if (!IsValidPosition(neighborPosition)) {
+                        break;
                     }
+
+                    int neighborIndex = Index(neighborPosition);
+
+                    if (!IsValidIndex(neighborIndex)) {
+                        break;
+                    }
+
+                    if (!CanRealmAttackRegion(regions[regionIndex].ownerIndex, neighborIndex)) {
+                        break;
+                    }
+
+                    attackTargets.Add(neighborIndex);
                 }
             }
 
@@ -529,7 +546,7 @@ namespace LouveSystems.K2.Lib
 
             oppositeRegionIndex = Index(opposite);
 
-            return oppositeRegionIndex >= 0 && oppositeRegionIndex < regions.Length;
+            return IsValidIndex(oppositeRegionIndex);
         }
 
         private Position GetOppositePosition(in Position centralPoint, in Position positionToMirror)
@@ -780,6 +797,16 @@ namespace LouveSystems.K2.Lib
         private int Index(in Position position)
         {
             return position.x + position.y * SideLength;
+        }
+
+        private bool IsValidPosition(in Position position)
+        {
+            return position.x >= 0 && position.y >= 0 && position.x < SideLength && position.y < SideLength;
+        }
+
+        private bool IsValidIndex(int index)
+        {
+            return index >= 0 && index < regions.Length;
         }
 
         public void Write(BinaryWriter into)
