@@ -26,7 +26,7 @@ namespace LouveSystems.K2.Lib
             return isOwned && buildings.HasFlagSafe(EBuilding.Capital) && rules.capitalCanReplay;
         }
 
-        public bool CannotBeTaken(GameRules rules)
+        public bool CannotBeTaken(GameRules rules, EFactionFlag byFaction)
         {
             if (inert) {
                 return true;
@@ -34,16 +34,17 @@ namespace LouveSystems.K2.Lib
 
             if (isOwned) {
                 if (buildings.HasFlagSafe(EBuilding.Capital)) {
-                    return !rules.subjugationEnabled;
+                    return !rules.subjugationForAll && !byFaction.HasFlagSafe(EFactionFlag.Subjugate);
                 }
             }
 
             return false;
         }
 
-        public bool IsReinforcedAgainstAttack(GameRules rules)
+        public bool IsReinforcedAgainstAttack(GameRules rules, EFactionFlag byFaction)
         {
-            if (rules.subjugationEnabled && buildings.HasFlagSafe(EBuilding.Capital)) {
+            if ((rules.subjugationForAll || byFaction.HasFlagSafe(EFactionFlag.Subjugate))
+                && buildings.HasFlagSafe(EBuilding.Capital)) {
                 return true;
             }
 

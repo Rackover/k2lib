@@ -487,6 +487,7 @@ namespace LouveSystems.K2.Lib
                 }
 
                 Region target = world.Regions[transform.targetRegionIndex];
+                EFactionFlag attackingFaction = world.GetRealmFaction(attackOwner);
 
                 ITransformEffect.ConquestEffect effect = new ITransformEffect.ConquestEffect();
                 effect.regionIndex = transform.targetRegionIndex;
@@ -504,7 +505,7 @@ namespace LouveSystems.K2.Lib
                     effect.factionHighlights |= EFactionFlag.Charge;
                 }
 
-                if (target.CannotBeTaken(rules)) {
+                if (target.CannotBeTaken(rules, attackingFaction)) {
                     // It's a fail
                 }
                 else if (transform.isExtendedAttack &&
@@ -516,7 +517,7 @@ namespace LouveSystems.K2.Lib
                     // Failure - extended attack that came after a tradtional attack that failed
                 }
                 else {
-                    if (target.IsReinforcedAgainstAttack(rules)) {
+                    if (target.IsReinforcedAgainstAttack(rules, attackingFaction)) {
 
                         int attacks = attackingRegions.Count();
 
@@ -532,7 +533,7 @@ namespace LouveSystems.K2.Lib
                 bool canLoot = !effect.Success && target.buildings != EBuilding.None;
                 if (target.buildings.HasFlagSafe(EBuilding.Fort)
                     && effect.Success
-                    && world.GetRealmFaction(attackOwner).HasFlagSafe(EFactionFlag.ConqueredFortsGivePayout)) {
+                    && attackingFaction.HasFlagSafe(EFactionFlag.ConqueredFortsGivePayout)) {
 
                     effect.silverLooted = this.rules.factions.conqueredFortPayout;
                     canLoot = true;
@@ -546,29 +547,36 @@ namespace LouveSystems.K2.Lib
 
                 // Building capture is a prowess
                 if (effect.Success &&
-                    target.buildings != EBuilding.None && 
-                    world.GetRealmFaction(attackOwner).HasFlagSafe(EFactionFlag.ConquestBuilding) &&
+                    target.buildings != EBuilding.None &&
+                   attackingFaction.HasFlagSafe(EFactionFlag.ConquestBuilding) &&
                     target.buildings != EBuilding.Capital
                     ) {
                     effect.factionHighlights |= EFactionFlag.ConquestBuilding;
                 }
 
                 // Epic loot from a mighty quest
-                if (effect.silverLooted > 0 && world.GetRealmFaction(attackOwner).HasFlagSafe(EFactionFlag.LootMoreMoney)) {
+                if (effect.silverLooted > 0 && attackingFaction.HasFlagSafe(EFactionFlag.LootMoreMoney)) {
                     effect.factionHighlights |= EFactionFlag.LootMoreMoney;
                 }
 
                 effects.Add(effect);
-            
+
                 // Subjugation
-                if (rules.subjugationEnabled && 
+                bool canSubjugate = rules.subjugationForAll
+                    || attackingFaction.HasFlagSafe(EFactionFlag.Subjugate);
+
+                if (canSubjugate && 
                     target.isOwned &&
                     effect.Success && 
                     target.buildings == EBuilding.Capital) {
-                    effects.Add(new ITransformEffect.SubjugationEffect(){
+
+                    var subjugation = new ITransformEffect.SubjugationEffect() {
                         attackingRealmIndex = attackOwner,
-                        targetRealmIndex = effect.previousOwningRealm
-                    });
+                        targetRealmIndex = effect.previousOwningRealm,
+                        isFactionHighlight = !rules.subjugationForAll
+                    };
+
+                    effects.Add(subjugation);
                 }
             }
         }

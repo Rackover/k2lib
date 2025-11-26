@@ -6,7 +6,7 @@ namespace LouveSystems.K2.Lib
     [System.Serializable]
     public class GameRules : IBinarySerializableWithVersion
     {
-        public const byte VERSION = 2;
+        public const byte VERSION = 3;
 
         [System.Serializable]
         public struct GlobalFactionSettings : IBinarySerializableWithVersion
@@ -207,6 +207,8 @@ namespace LouveSystems.K2.Lib
 
         public bool goTakeNeutralOnlyWhenNoContest = true;
 
+        public bool goTakeDestroysBuildings = false;
+
         public byte turnsBetweenVotes = 4;
 
         public byte initialVoteTurnsDelay = 1;
@@ -221,7 +223,7 @@ namespace LouveSystems.K2.Lib
 
         public bool capitalCanReplay = true;
 
-        public bool subjugationEnabled = true;
+        public bool subjugationForAll = false;
 
         public VotingRules voting = new VotingRules();
 
@@ -261,7 +263,7 @@ namespace LouveSystems.K2.Lib
             into.Write(silverRevenuePerRegion);
 
             into.Write(capitalCanReplay);
-            into.Write(subjugationEnabled);
+            into.Write(subjugationForAll);
 
             into.Write((byte)buildings.Length);
             for (int i = 0; i < buildings.Length; i++) {
@@ -270,11 +272,17 @@ namespace LouveSystems.K2.Lib
 
             voting.Write(into);
             factions.Write(into);
+
+            into.Write(goTakeDestroysBuildings);
         }
 
         public void Read(byte version, BinaryReader from)
         {
             version = from.ReadByte();
+
+            if (version > VERSION) {
+                return;
+            }
 
             initialRealmsSize = from.ReadByte();
             additionalRealmsCount = from.ReadByte();
@@ -304,7 +312,7 @@ namespace LouveSystems.K2.Lib
             silverRevenuePerRegion = from.ReadByte();
 
             capitalCanReplay = from.ReadBoolean();
-            subjugationEnabled = from.ReadBoolean();
+            subjugationForAll = from.ReadBoolean();
 
             buildings = new BuildingSettings[from.ReadByte()];
             for (int i = 0; i < buildings.Length; i++) {
@@ -313,6 +321,10 @@ namespace LouveSystems.K2.Lib
 
             voting.Read(version, from);
             factions.Read(version, from);
+
+            if (version >= 3) {
+                goTakeDestroysBuildings = from.ReadBoolean();
+            }
         }
 
         public GameRules Duplicate()

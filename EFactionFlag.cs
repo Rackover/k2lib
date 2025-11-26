@@ -12,6 +12,7 @@ namespace LouveSystems.K2.Lib
         RicherTerritories = 1 << 4,
         LootMoreMoney = 1 << 5,
         ConqueredFortsGivePayout = 1 << 6,
-        SeeEnemyPlannedConstructions = 1 << 7
+        SeeEnemyPlannedConstructions = 1 << 7,
+        Subjugate = 1 << 8,
     }
 }

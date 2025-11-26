@@ -89,7 +89,8 @@ namespace LouveSystems.K2.Lib
                 next.world.Modify(out Region[] regions, out Realm[] realms);
                 regions[regionIndex].isOwned = hasNewOwner;
 
-                if (previous.world.GetRealmFaction(newOwningRealm).HasFlagSafe(EFactionFlag.ConquestBuilding)) {
+                if (previous.world.GetRealmFaction(newOwningRealm).HasFlagSafe(EFactionFlag.ConquestBuilding) ||
+                    !previous.rules.goTakeDestroysBuildings) {
                     // Keep building
                 }
                 else {
@@ -189,6 +190,7 @@ namespace LouveSystems.K2.Lib
         {
             public byte attackingRealmIndex;
             public byte targetRealmIndex;
+            public bool isFactionHighlight;
 
             public void Apply(in GameState previous, ref GameState next)
             {

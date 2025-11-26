@@ -260,15 +260,17 @@ namespace LouveSystems.K2.Lib
         public int GetRegionLootableSilverWorth(int regionIndex, byte lootingRealm)
         {
             int silver;
+            EFactionFlag lootingRealmFaction = GetRealmFaction(lootingRealm);
 
-            if (regions[regionIndex].buildings.HasFlagSafe(EBuilding.Capital) && !rules.subjugationEnabled) {
+            if (regions[regionIndex].buildings.HasFlagSafe(EBuilding.Capital) &&
+                regions[regionIndex].CannotBeTaken(rules, lootingRealmFaction)) {
                 silver = rules.silverLootedOnCapital;
             }
             else {
                 silver =GetRegionSilverWorth(regionIndex);
             }
 
-            if (GetRealmFaction(lootingRealm).HasFlagSafe(EFactionFlag.LootMoreMoney)) {
+            if (lootingRealmFaction.HasFlagSafe(EFactionFlag.LootMoreMoney)) {
                 if (silver < rules.factions.looterMinimumSilver) {
 
                     silver = rules.factions.looterMinimumSilver;
@@ -453,7 +455,7 @@ namespace LouveSystems.K2.Lib
 
         public void GetTerritoryOfRealm(byte realmIndex, in List<int> regions, bool includeSubjugated)
         {
-            if (rules.subjugationEnabled && includeSubjugated) {
+            if (includeSubjugated) {
                 realmPoolBuffer.Clear();
                 GetAlliedOrSubjugatedRealms(realmIndex, realmPoolBuffer);
 
