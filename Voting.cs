@@ -126,14 +126,16 @@ namespace LouveSystems.K2.Lib
             {
                 int totalScores = wastedVotes;
 
-                for (int i = 0; i < scores.Length; i++) {
-                    totalScores += scores[i].totalVotes;
-                }
+                if (scores != null) {
+                    for (int i = 0; i < scores.Length; i++) {
+                        totalScores += scores[i].totalVotes;
+                    }
 
-                for (int i = 0; i < scores.Length; i++) {
-                    if (scores[i].totalVotes > totalScores / 2) {
-                        winnerIndex = scores[i].realmIndex;
-                        return true;
+                    for (int i = 0; i < scores.Length; i++) {
+                        if (scores[i].totalVotes > totalScores / 2) {
+                            winnerIndex = scores[i].realmIndex;
+                            return true;
+                        }
                     }
                 }
 

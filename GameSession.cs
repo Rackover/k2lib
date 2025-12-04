@@ -76,7 +76,7 @@ namespace LouveSystems.K2.Lib
         public bool EverybodyHasPlayed()
         {
             foreach (var player in SessionPlayers) {
-                if (player.Value.AnyDecisionsRemaining() || player.Value.CanUpgradeAdministration()) {
+                if (player.Value.HasAnythingToPlay()) {
                     return false;
                 }
             }

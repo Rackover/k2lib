@@ -176,6 +176,11 @@ namespace LouveSystems.K2.Lib
             return true;
         }
 
+        public virtual bool HasAnythingToPlay()
+        {
+            return AnyDecisionsRemaining() || CanUpgradeAdministration();
+        }
+
         public bool AnyDecisionsRemaining()
         {
             return GetRemainingDecisions() > 0;
