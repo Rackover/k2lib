@@ -172,6 +172,36 @@ namespace LouveSystems.K2.Lib
             realms = this.realms;
         }
 
+        public bool IsCompletelySubjugated(out byte realmIndex)
+        {
+            HashSet<byte> subjugators = new HashSet<byte>(realms.Length);
+            List<byte> independentRealms = new List<byte>(realms.Length);
+            realmIndex = default;
+            for (byte i = 0; i < realms.Length; i++) {
+                if (realms[i].IsSubjugated(out byte subjugator)) {
+                    subjugators.Add(subjugator);
+                }
+                else {
+                    independentRealms.Add(i);
+
+                    if (independentRealms.Count > 0) {
+                        return false;
+                    }
+                }
+            }
+
+            if (independentRealms.Count == 1) {
+                if (subjugators.Count == 1) {
+                    if (subjugators.Contains(independentRealms[0])) {
+                        realmIndex = independentRealms[0];
+                        return true;
+                    }
+                }
+            }
+
+            return false;
+        }
+
         public void AddSilverTreasury(byte realmIndex, int amount)
         {
             int treasury = GetSilverTreasury(realmIndex);
