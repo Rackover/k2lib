@@ -563,7 +563,8 @@ namespace LouveSystems.K2.Lib
 
                 // Subjugation
                 bool canSubjugate = rules.subjugationForAll
-                    || attackingFaction.HasFlagSafe(EFactionFlag.Subjugate);
+                    || attackingFaction.HasFlagSafe(EFactionFlag.Subjugate) 
+                    || world.Realms[attackOwner].IsSubjugated(out byte subjugator) && world.GetRealmFaction(subjugator).HasFlagSafe(EFactionFlag.Subjugate);
 
                 if (canSubjugate && 
                     target.isOwned &&

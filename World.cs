@@ -256,6 +256,12 @@ namespace LouveSystems.K2.Lib
 
         public bool IsRealmExcludedFromVoting(byte realmIndex) => IsCouncilRealm(realmIndex) || this.realms[realmIndex].isSubjugated;
 
+        public bool IsActionableRegion(byte realmIndex, int regionIndex)
+        {
+            return Regions[regionIndex].IsOwnedBy(realmIndex) ||
+                Realms[realmIndex].IsSubjugated(out byte subjugator) && Regions[regionIndex].IsOwnedBy(subjugator);
+        }
+
         public EFactionFlag GetRealmFaction(int realmIndex)
         {
             return this.rules.factions.flagsForFaction[realms[realmIndex].factionIndex];

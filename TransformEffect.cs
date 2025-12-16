@@ -115,7 +115,7 @@ namespace LouveSystems.K2.Lib
 
             public bool WasSuccessful(in GameState currentGameState)
             {
-                return currentGameState.world.Regions[regionIndex].IsOwnedBy(forOwner);
+                return currentGameState.world.IsActionableRegion(forOwner, regionIndex);
             }
 
             public void Apply(in GameState previous, ref GameState next)
@@ -143,7 +143,7 @@ namespace LouveSystems.K2.Lib
                     return;
                 }
 
-                if (next.world.Regions[regionIndex].IsOwnedBy(regionOwner)) {
+                if (next.world.IsActionableRegion(forOwner, regionIndex)) {
 
                     next.world.Modify(out Region[] regions, out Realm[] realms);
 
