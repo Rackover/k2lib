@@ -440,7 +440,7 @@ namespace LouveSystems.K2.Lib
             return GetAttackTargetsForRegionNoAlloc(regionIndex, canExtendAttack, in attackTargets);
         }
 
-        public bool GetNaturalOwnerFromNeighbors(int regionIndex, ManagedRandom randomOptional, out byte newOwner, out bool wasCoinFlip, out bool isTotallySurrounded)
+        public bool GetNaturalOwnerFromNeighbors(int regionIndex, ManagedRandom randomOptional, bool discardCurrentOwner, out byte newOwner, out bool wasCoinFlip, out bool isTotallySurrounded)
         {
             int[] neighbors = GetNeighboringRegions(regionIndex);
 
@@ -454,6 +454,10 @@ namespace LouveSystems.K2.Lib
                     byte owner = regions[neighbors[i]].ownerIndex;
 
                     if (IsCouncilRealm(owner)) {
+                        continue;
+                    }
+
+                    if (discardCurrentOwner && Regions[regionIndex].IsOwnedBy(owner)) {
                         continue;
                     }
 
@@ -536,8 +540,10 @@ namespace LouveSystems.K2.Lib
                 }
             }
             else {
-                if (GetCapitalOfRealm(realmIndex, out int capital)) {
-                    GetAllConnectedRegionsOfSameOwner(capital, regions);
+                for (int i = 0; i < Regions.Count; i++) {
+                    if (Regions[i].IsOwnedBy(realmIndex)) {
+                        regions.Add(i);
+                    }
                 }
             }
         }
@@ -574,7 +580,7 @@ namespace LouveSystems.K2.Lib
             return false;
         }
 
-        public void GetAllConnectedRegions(int startingPoint, in List<int> regionsIndices, Predicate<Region> filter)
+        public void GetAllConnectedRegions(int startingPoint, in ICollection<int> regionsIndices, Predicate<Region> filter)
         {
             regionsIndices.Add(startingPoint);
             int[] neighbors = GetNeighboringRegions(startingPoint);
@@ -595,7 +601,7 @@ namespace LouveSystems.K2.Lib
             }
         }
 
-        public void GetAllConnectedRegionsOfSameOwner(int startingPoint, in List<int> regionsIndices)
+        public void GetAllConnectedRegionsOfSameOwner(int startingPoint, in ICollection<int> regionsIndices)
         {
             bool hasOwner = regions[startingPoint].isOwned;
             byte owner = regions[startingPoint].ownerIndex;

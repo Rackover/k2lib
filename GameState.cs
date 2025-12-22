@@ -6,6 +6,7 @@ namespace LouveSystems.K2.Lib
     using System.Diagnostics;
     using System.IO;
     using System.Linq;
+    using System.Threading;
 
     public struct GameState : IBinarySerializableWithVersion
     {
@@ -109,7 +110,7 @@ namespace LouveSystems.K2.Lib
                 while (true) {
                     int count = effectsList.Count;
                     ApplyEffects(effectsList, ref borderGoreComputationDuplicate);
-                    borderGoreComputationDuplicate.ResolveRealmBorderGore(in borderGoreComputationDuplicate.world, random, effectsList, depth);
+                    borderGoreComputationDuplicate.ResolveRealmsBorderGore(in borderGoreComputationDuplicate.world, random, effectsList, depth);
 
                     depth++;
 
@@ -278,98 +279,120 @@ namespace LouveSystems.K2.Lib
                 for (int i = 0; i < isolatedNeutralRegions.Count; i++) {
                     int regionIndex = isolatedNeutralRegions[i];
                     // Random is NOT ALLOWED!
-                    SolveBorderGoreForRegion(world, randomOptional: null, regionIndex, effects, depth);
+                    SolveBorderGoreForRegion(world, randomOptional: null, regionIndex, effects, depth, allowNeutralization: true);
                 }
             }
         }
 
-        private void ResolveRealmBorderGore(in World world, ManagedRandom random, in List<ITransformEffect> effects, byte depth)
+        private void ResolveRealmsBorderGore(in World world, ManagedRandom random, in List<ITransformEffect> effects, byte depth)
         {
             List<ITransformEffect> effectsToAdd = new List<ITransformEffect>();
-            Dictionary<byte, List<int>> allRegionsForRealm = new Dictionary<byte, List<int>>(world.Realms.Count);
-            List<int> totalOwnedRegions = new List<int>();
 
-            for (int regionIndex = 0; regionIndex < world.Regions.Count; regionIndex++) {
-                if (world.Regions[regionIndex].isOwned) {
-                    byte owner = world.Regions[regionIndex].ownerIndex;
-
-                    if (!allRegionsForRealm.TryGetValue(owner, out List<int> allRegions)) {
-                        allRegions = new List<int>();
-                        allRegionsForRealm[owner] = allRegions;
-                    }
-
-                    allRegionsForRealm[owner].Add(regionIndex);
-                    totalOwnedRegions.Add(regionIndex);
+            for (byte i = 0; i < world.Realms.Count; i++) {
+                if (world.IsCouncilRealm(i)) {
+                    continue;
                 }
+
+                SolveBorderGoreForRealm(world, random, i, effectsToAdd, depth);
             }
 
-            List<int> connectedRealmRegions = new List<int>();
-
-            List<byte> alliedRealmsCache = new List<byte>();
-
-            for (byte startingRealmIndex = 0; startingRealmIndex < world.Realms.Count; startingRealmIndex++) {
-                connectedRealmRegions.Clear();
-                Realm realm = world.Realms[startingRealmIndex];
-
-                alliedRealmsCache.Clear();
-                world.GetAlliedOrSubjugatedRealms(startingRealmIndex, alliedRealmsCache);
-
-                List<int> remainingTerritories = new List<int>(allRegionsForRealm[startingRealmIndex]);
-
-                for (int realmIndexIndex = 0; realmIndexIndex < alliedRealmsCache.Count; realmIndexIndex++) {
-                    byte realmIndex = alliedRealmsCache[realmIndexIndex];
-
-                    bool isAlliedRegion(Region region)
-                    {
-                        return region.isOwned && alliedRealmsCache.Contains(region.ownerIndex);
-                    }
-
-                    if (world.GetCapitalOfRealm(realmIndex, out int capitalRegionIndex)) {
-                        world.GetAllConnectedRegions(capitalRegionIndex, connectedRealmRegions, isAlliedRegion);
-
-                        var faction = world.GetRealmFaction(realmIndex);
-
-                        remainingTerritories.RemoveAll(connectedRealmRegions.Contains);
-
-                        if (faction.HasFlagSafe(EFactionFlag.FortsCountAsCapital)) {
-
-                            // Add regions that are connected to a fort
-                            for (int territoryIndexIndex = 0; territoryIndexIndex < remainingTerritories.Count; territoryIndexIndex++) {
-                                int regionIndex = remainingTerritories[territoryIndexIndex];
-
-                                // Mark these as connected if they have at least one fort
-                                if (world.Regions[regionIndex].buildings.HasFlagSafe(EBuilding.Fort)) {
-                                    world.GetAllConnectedRegions(regionIndex, connectedRealmRegions, isAlliedRegion);
-                                    remainingTerritories.RemoveAll(connectedRealmRegions.Contains);
-                                    territoryIndexIndex = -1; // Set to minus one to restart loop. Then continue
-                                    continue;
-                                }
-                            }
-                        }
-
-                        if (remainingTerritories.Count > 0) {
-                            // That realm has border gore that we must solve
-                            for (int i = 0; i < remainingTerritories.Count; i++) {
-                                int regionIndex = remainingTerritories[i];
-                                SolveBorderGoreForRegion(world, random, regionIndex, effectsToAdd, depth);
-
-                                totalOwnedRegions.Add(regionIndex);
-                            }
-                        }
-                        //else if (connectedRealmRegions.Count > allRegionsForRealm[realmIndex].Count) {
-                        //    throw new System.Exception($"Something went wrong with border gore calculation");
-                        //}
-                    }
-                }
-            }
-
-            // Coin flips at the very end
             effects.AddRange(effectsToAdd.OrderBy(o => o is ITransformEffect.ConquestEffect conquest && conquest.isACoinFlip));
         }
 
-        private void SolveBorderGoreForRegion(in World world, ManagedRandom randomOptional, int regionIndex, in List<ITransformEffect> effects, byte depth)
+        private void SolveBorderGoreForRealm(in World world,  ManagedRandom random, byte realm, in List<ITransformEffect> effects, byte depth)
         {
-            if (world.GetNaturalOwnerFromNeighbors(regionIndex, randomOptional, out byte newOwner, out bool wasCoinFlip, out bool isTotallySurrounded)) {
+            List<int> remainingRegionsToConnect = new List<int>();
+            world.GetTerritoryOfRealm(realm, remainingRegionsToConnect);
+
+            HashSet<int> connectedRegions = new HashSet<int>(remainingRegionsToConnect.Count);
+
+            // 1.  Identify connection central points (capital, and forts for some)
+            List<int> startingPoints = new List<int>(4);
+            {
+
+                if (world.GetCapitalOfRealm(realm, out int capitalRegionIndex)) {
+                    startingPoints.Add(capitalRegionIndex);
+                }
+                else {
+                    // This means the user has no capital - normally this should never happen but whomstdve the fuck knows
+                    // Early out
+                    return;
+                }
+
+                if (world.GetRealmFaction(realm).HasFlagSafe(EFactionFlag.FortsCountAsCapital)) {
+                    for (int i = 0; i < remainingRegionsToConnect.Count; i++) {
+                        int regionIndex = remainingRegionsToConnect[i];
+                        if (world.Regions[regionIndex].buildings.HasFlagSafe(EBuilding.Fort)) {
+                            startingPoints.Add(regionIndex);
+                        }
+                    }
+                }
+            }
+
+            // 2.  Any region connected to either of these starting points is deemed Connected
+            {
+                for (int i = 0; i < startingPoints.Count; i++) {
+                    int centralRegionIndex = startingPoints[i];
+                    world.GetAllConnectedRegionsOfSameOwner(centralRegionIndex, connectedRegions);
+                }
+            }
+
+            // 3. Any region not present in the Connected list is marked for attrition
+            {
+                remainingRegionsToConnect.RemoveAll(connectedRegions.Contains);
+            }
+
+            // 4. We work on them in a certain order - starts with the regions that are the _most lonely_
+            //  because this prevents a group of isolated regions from self-sustaining
+            {
+                Dictionary<int, int> isolationScoreForRegion = new Dictionary<int, int>(remainingRegionsToConnect.Count);
+                ThreadLocal<List<int>> neighborsCache = new ThreadLocal<List<int>>(() => new(6));
+                for (int i = 0; i < remainingRegionsToConnect.Count; i++) {
+                    neighborsCache.Value.Clear();
+
+                    int regionIndex = remainingRegionsToConnect[i];
+                    world.GetNeighboringRegions(regionIndex, neighborsCache.Value);
+
+                    int score = 0;
+                    for (int neighborIndex = 0; neighborIndex < neighborsCache.Value.Count; neighborIndex++) {
+                        int neighborRegionIndex = neighborsCache.Value[neighborIndex];
+                        if (world.Regions[neighborRegionIndex].IsOwnedBy(realm)) {
+                            // 🙅‍
+                        }
+                        else if(world.Regions[neighborRegionIndex].isOwned) {
+                            score += 6;
+                        }
+                        else {
+                            score += 1;
+                        }
+                    }
+
+                    isolationScoreForRegion[regionIndex] = score;
+                }
+
+                // Higher score => higher priority
+                remainingRegionsToConnect.Sort((a, b) => isolationScoreForRegion[b].CompareTo(isolationScoreForRegion[a]));
+            }
+
+            // 5. Solve each region. If a region does not have a clear owner, skip it for now
+            {
+                for (int i = 0; i < remainingRegionsToConnect.Count; i++) {
+                    int regionIndex = remainingRegionsToConnect[i];
+                    SolveBorderGoreForRegion(world, random, regionIndex, effects, depth, allowNeutralization : false);
+                }
+            }
+        }
+
+        private void SolveBorderGoreForRegion(in World world, ManagedRandom randomOptional, int regionIndex, in List<ITransformEffect> effects, byte depth, bool allowNeutralization)
+        {
+            if (world.GetNaturalOwnerFromNeighbors(
+                regionIndex, 
+                randomOptional,
+                discardCurrentOwner: true, 
+                out byte newOwner, 
+                out bool wasCoinFlip,
+                out bool isTotallySurrounded)
+            ) {
                 if (world.Regions[regionIndex].IsOwnedBy(newOwner)) {
                     // This happens - it's okay, the next pass of solving will fix it
                 }
@@ -385,7 +408,7 @@ namespace LouveSystems.K2.Lib
             }
             else {
                 // Lose ownership
-                if (world.Regions[regionIndex].isOwned) {
+                if (world.Regions[regionIndex].isOwned && allowNeutralization) {
                     effects.Add(new ITransformEffect.StarvationEffect() {
                         hasNewOwner = false,
                         newOwningRealm = default,
