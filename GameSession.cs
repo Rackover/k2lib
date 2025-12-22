@@ -57,6 +57,19 @@ namespace LouveSystems.K2.Lib
                 realms[realmsIndices[i]].factionIndex = party.realmsToInitialize[i].factionIndex;
             }
 
+            for (byte i = 0; i < party.realmsToInitialize.Length; i++) {
+                if (party.realmsToInitialize[i].initialSubjugatorPlayerId.HasValue) {
+                    byte subjugator = party.realmsToInitialize[i].initialSubjugatorPlayerId.Value;
+                    if (sessionPlayers.TryGetValue(subjugator, out SessionPlayer sessionPlayer)) {
+                        realms[realmsIndices[i]].isSubjugated = true;
+                        realms[realmsIndices[i]].subjugatedBy = sessionPlayer.RealmIndex;
+
+                        // Transfer all gold
+                        realms[sessionPlayer.RealmIndex].silverTreasury += realms[realmsIndices[i]].silverTreasury;
+                        realms[realmsIndices[i]].silverTreasury = 0;
+                    }
+                }
+            }
 
             gameState.daysRemainingBeforeNextCouncil = (byte)(parameters.turnsBetweenVotes + parameters.initialVoteTurnsDelay);
         }
@@ -168,6 +181,11 @@ namespace LouveSystems.K2.Lib
 
             owningPlayerId = default;
             return false;
+        }
+
+        public bool IsRealmSubjugated(int realmIndex, out byte subjugatingRealmIndex)
+        {
+            return CurrentGameState.world.Realms[realmIndex].IsSubjugated(out subjugatingRealmIndex);
         }
 
         public bool GetOwnerOfRealm(int realmIndex, out byte owningPlayerId, bool subjugator = true)

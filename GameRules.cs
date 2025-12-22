@@ -6,12 +6,31 @@ namespace LouveSystems.K2.Lib
     [System.Serializable]
     public class GameRules : IBinarySerializableWithVersion
     {
-        public const byte VERSION = 3;
+        public const byte VERSION = 4;
 
         [System.Serializable]
         public struct GlobalFactionSettings : IBinarySerializableWithVersion
         {
-            public byte FactionCount => (byte)flagsForFaction.Length;
+            [System.Serializable]
+            public struct FactionSettings : IBinarySerializableWithVersion
+            {
+                public bool enabled;
+                public EFactionFlag flag;
+
+                public void Read(byte version, BinaryReader from)
+                {
+                    enabled = from.ReadBoolean();
+                    flag = (EFactionFlag)from.ReadUInt32();
+                }
+
+                public void Write(BinaryWriter into)
+                {
+                    into.Write(enabled);
+                    into.Write((uint)flag);
+                }
+            }
+
+            public byte FactionCount => (byte)factionFlags.Length;
 
             public byte richesSilverMultiplier; // 2
             public byte richesBuildingMultiplier; // 3
@@ -22,14 +41,22 @@ namespace LouveSystems.K2.Lib
 
             public byte conqueredFortPayout;
 
-            public EFactionFlag[] flagsForFaction;
+            public FactionSettings[] factionFlags;
 
             public void Read(byte version, BinaryReader from)
             {
-                flagsForFaction = new EFactionFlag[from.ReadByte()];
+                if (version <= 3) {
+                    factionFlags = new FactionSettings[from.ReadByte()];
 
-                for (int i = 0; i < flagsForFaction.Length; i++) {
-                    flagsForFaction[i] = (EFactionFlag)from.ReadUInt16();
+                    for (int i = 0; i < factionFlags.Length; i++) {
+                        factionFlags[i] = new FactionSettings() {
+                            enabled = true,
+                            flag = (EFactionFlag)from.ReadUInt16()
+                        };
+                    }
+                }
+                else {
+                    from.Read(version, ref factionFlags);
                 }
 
                 richesSilverMultiplier = from.ReadByte();
@@ -44,10 +71,7 @@ namespace LouveSystems.K2.Lib
 
             public void Write(BinaryWriter into)
             {
-                into.Write(FactionCount);
-                for (int i = 0; i < FactionCount; i++) {
-                    into.Write((ushort)flagsForFaction[i]);
-                }
+                into.Write(factionFlags);
 
                 into.Write(richesSilverMultiplier); 
                 into.Write(richesBuildingMultiplier); 

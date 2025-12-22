@@ -12,7 +12,9 @@ namespace LouveSystems.K2.Lib
 
         public byte FactionIndex => gameSession.CurrentGameState.world.Realms[RealmIndex].factionIndex;
 
-        public EFactionFlag Faction => Rules.factions.flagsForFaction[FactionIndex];
+        public EFactionFlag Faction => Rules.factions.factionFlags[FactionIndex].flag;
+
+        public EFactionFlag AllianceFaction => gameSession.CurrentGameState.world.GetAllianceFaction(RealmIndex);
 
         private readonly GameSession gameSession;
 

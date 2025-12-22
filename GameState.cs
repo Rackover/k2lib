@@ -487,7 +487,7 @@ namespace LouveSystems.K2.Lib
                 }
 
                 Region target = world.Regions[transform.targetRegionIndex];
-                EFactionFlag attackingFaction = world.GetRealmFaction(attackOwner);
+                EFactionFlag attackingFaction = world.GetAllianceFaction(attackOwner);
 
                 ITransformEffect.ConquestEffect effect = new ITransformEffect.ConquestEffect();
                 effect.regionIndex = transform.targetRegionIndex;
@@ -548,7 +548,7 @@ namespace LouveSystems.K2.Lib
                 // Building capture is a prowess
                 if (effect.Success &&
                     target.buildings != EBuilding.None &&
-                   attackingFaction.HasFlagSafe(EFactionFlag.ConquestBuilding) &&
+                    attackingFaction.HasFlagSafe(EFactionFlag.ConquestBuilding) &&
                     target.buildings != EBuilding.Capital
                     ) {
                     effect.factionHighlights |= EFactionFlag.ConquestBuilding;
@@ -563,8 +563,7 @@ namespace LouveSystems.K2.Lib
 
                 // Subjugation
                 bool canSubjugate = rules.subjugationForAll
-                    || attackingFaction.HasFlagSafe(EFactionFlag.Subjugate) 
-                    || world.Realms[attackOwner].IsSubjugated(out byte subjugator) && world.GetRealmFaction(subjugator).HasFlagSafe(EFactionFlag.Subjugate);
+                    || attackingFaction.HasFlagSafe(EFactionFlag.Subjugate) ;
 
                 if (canSubjugate && 
                     target.isOwned &&

@@ -258,13 +258,39 @@ namespace LouveSystems.K2.Lib
 
         public bool IsActionableRegion(byte realmIndex, int regionIndex)
         {
-            return Regions[regionIndex].IsOwnedBy(realmIndex) ||
-                Realms[realmIndex].IsSubjugated(out byte subjugator) && Regions[regionIndex].IsOwnedBy(subjugator);
+            return
+                // Personal ownership
+                Regions[regionIndex].IsOwnedBy(realmIndex) ||
+                
+                // Property of their subjugator
+                Realms[realmIndex].IsSubjugated(out byte subjugator) && Regions[regionIndex].IsOwnedBy(subjugator) ||
+
+                // Subjugated property
+                Regions[regionIndex].isOwned && 
+                Realms[Regions[regionIndex].ownerIndex].isSubjugated &&
+                Realms[Regions[regionIndex].ownerIndex].subjugatedBy == realmIndex;
         }
 
         public EFactionFlag GetRealmFaction(int realmIndex)
         {
-            return this.rules.factions.flagsForFaction[realms[realmIndex].factionIndex];
+            return this.rules.factions.factionFlags[realms[realmIndex].factionIndex].flag;
+        }
+
+        public EFactionFlag GetAllianceFaction(int realmIndex)
+        {
+            EFactionFlag faction = GetRealmFaction(realmIndex);
+            if (realms[realmIndex].IsSubjugated(out byte subjugator)) {
+                faction |= GetRealmFaction(subjugator);
+            }
+
+            for (int i = 0; i < realms.Length; i++) {
+                if (realms[i].IsSubjugated(out byte theirSubjugator) && 
+                    (theirSubjugator == subjugator || theirSubjugator == realmIndex)) {
+                    faction |= GetRealmFaction(i);
+                }
+            }
+
+            return faction;
         }
 
         public bool GetRegionFactionIndex(int regionIndex, out byte factionIndex)
@@ -276,6 +302,15 @@ namespace LouveSystems.K2.Lib
 
             factionIndex = default;
             return false;
+        }
+
+        public EFactionFlag GetRegionAllianceFaction(int regionIndex)
+        {
+            if (regions[regionIndex].GetOwner(out byte realmIndex)) {
+                return GetAllianceFaction(realmIndex);
+            }
+
+            return EFactionFlag.None;
         }
 
         public EFactionFlag GetRegionFaction(int regionIndex)
@@ -819,7 +854,8 @@ namespace LouveSystems.K2.Lib
             }
 
             ref Realm realm = ref realms[realmIndex];
-            realm.silverTreasury = this.rules.startingGold * 10;
+            AddSilverTreasury(realmIndex, this.rules.startingGold* 10);
+
             realm.availableDecisions = this.rules.startingDecisionCount;
         }
 

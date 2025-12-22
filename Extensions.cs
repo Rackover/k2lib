@@ -166,7 +166,7 @@ namespace LouveSystems.K2.Lib
             return hash;
         }
 
-        public static void AddRange<T>(this ICollection<T> collection, ICollection<T> toAdd)
+        public static void AddRange<T>(this ICollection<T> collection, IReadOnlyCollection<T> toAdd)
         {
             foreach(var elem in toAdd) {
                 collection.Add(elem);

@@ -9,6 +9,7 @@ namespace LouveSystems.K2.Lib
         {
             public byte forPlayerId;
             public byte factionIndex;
+            public byte? initialSubjugatorPlayerId;
             // Additional parameters... faction etc
         }
 
