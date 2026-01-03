@@ -23,6 +23,14 @@
                 bin.Read(br);
             }
         }
+        public static void Read<T>(this BinaryReader br, List<T> targets) where T : IBinaryReadable, new()
+        {
+            targets.Clear();
+            T[] arr = null;
+            br.Read(ref arr);
+            targets.AddRange(arr);
+        }
+
 
         public static void Read<T>(this BinaryReader br, byte version, ref T target) where T : IBinaryReadableVersionable
         {

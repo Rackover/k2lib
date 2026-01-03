@@ -4,7 +4,7 @@ namespace LouveSystems.K2.Lib
     using System.IO;
 
     [System.Serializable]
-    public class GameRules : IBinarySerializableWithVersion
+    public class GameRules : IBinarySerializable
     {
         public const byte VERSION = 4;
 
@@ -300,9 +300,9 @@ namespace LouveSystems.K2.Lib
             into.Write(goTakeDestroysBuildings);
         }
 
-        public void Read(byte version, BinaryReader from)
+        public void Read(BinaryReader from)
         {
-            version = from.ReadByte();
+            byte version = from.ReadByte();
 
             if (version > VERSION) {
                 return;
@@ -363,7 +363,7 @@ namespace LouveSystems.K2.Lib
                 var dupe = new GameRules();
 
                 using (BinaryReader br = new BinaryReader(ms)) {
-                    dupe.Read(default, br);
+                    dupe.Read(br);
                 }
 
                 return dupe;

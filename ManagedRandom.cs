@@ -4,8 +4,10 @@ namespace LouveSystems.K2.Lib
     using System;
     using System.IO;
 
-    public class ManagedRandom : IBinarySerializableWithVersion
+    public class ManagedRandom : IBinarySerializable
     {
+        private const byte VERSION = 1;
+
         private const int PRE_ROLLS = 128;
 
         public int Position { get; private set; }
@@ -21,6 +23,13 @@ namespace LouveSystems.K2.Lib
 
             Position = 0;
         }
+        
+        private ManagedRandom(ManagedRandom other)
+        {
+            Position = other.Position;
+            other.Rolls.CopyTo(Rolls, 0);
+        }
+
 
         public int Next()
         {
@@ -53,6 +62,7 @@ namespace LouveSystems.K2.Lib
 
         public void Write(BinaryWriter into)
         {
+            into.Write(VERSION);
             into.Write(Position);
 
             for (int i = 0; i < Rolls.Length; i++) {
@@ -60,9 +70,16 @@ namespace LouveSystems.K2.Lib
             }
         }
 
-        public void Read(byte version, BinaryReader from)
+        public void Read( BinaryReader from)
         {
+            byte version = from.ReadByte();
             Position = from.ReadInt32();
+        }
+
+        public ManagedRandom Duplicate()
+        {
+            ManagedRandom dupe = new ManagedRandom(this);
+            return dupe;
         }
     }
 }

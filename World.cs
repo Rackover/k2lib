@@ -178,13 +178,18 @@ namespace LouveSystems.K2.Lib
             List<byte> independentRealms = new List<byte>(realms.Length);
             realmIndex = default;
             for (byte i = 0; i < realms.Length; i++) {
+                
+                if (IsCouncilRealm(i)) {
+                    continue;
+                }
+
                 if (realms[i].IsSubjugated(out byte subjugator)) {
                     subjugators.Add(subjugator);
                 }
                 else {
                     independentRealms.Add(i);
 
-                    if (independentRealms.Count > 0) {
+                    if (independentRealms.Count > 1) {
                         return false;
                     }
                 }
@@ -210,6 +215,10 @@ namespace LouveSystems.K2.Lib
 
         public void SetSilverTreasury(byte realmIndex, int treasury)
         {
+            if (!IsValidRealmIndex(realmIndex)) {
+                return;
+            }
+
             byte target = realmIndex;
             if (realms[realmIndex].IsSubjugated(out byte subjugator)) {
                 target = subjugator;
@@ -224,6 +233,10 @@ namespace LouveSystems.K2.Lib
 
         public int GetSilverTreasury(byte realmIndex)
         {
+            if (!IsValidRealmIndex(realmIndex)) {
+                return default;
+            }
+
             if (realms[realmIndex].IsSubjugated(out byte subjugator)) {
                 return realms[subjugator].silverTreasury;
             }
@@ -250,14 +263,26 @@ namespace LouveSystems.K2.Lib
             return (byte)sideLength;
         }
 
-        public bool IsCouncilRegion(int regionIndex) => councilRealmIndex.HasValue && this.regions[regionIndex].IsOwnedBy(councilRealmIndex.Value);
+        public bool IsCouncilRegion(int regionIndex) => councilRealmIndex.HasValue
+            && IsValidRegionIndex(regionIndex) 
+            && this.regions[regionIndex].IsOwnedBy(councilRealmIndex.Value);
 
         public bool IsCouncilRealm(byte realmIndex) => councilRealmIndex == realmIndex;
 
-        public bool IsRealmExcludedFromVoting(byte realmIndex) => IsCouncilRealm(realmIndex) || this.realms[realmIndex].isSubjugated;
+        public bool IsRealmExcludedFromVoting(byte realmIndex) {
+            if (!IsValidRealmIndex(realmIndex)) {
+                return default;
+            }
+
+            return IsCouncilRealm(realmIndex) || this.realms[realmIndex].isSubjugated;
+        }
 
         public bool IsActionableRegion(byte realmIndex, int regionIndex)
         {
+            if (!IsValidRegionIndex(regionIndex) || !IsValidRealmIndex(realmIndex)) {
+                return false;
+            }
+
             return
                 // Personal ownership
                 Regions[regionIndex].IsOwnedBy(realmIndex) ||
@@ -271,19 +296,23 @@ namespace LouveSystems.K2.Lib
                 Realms[Regions[regionIndex].ownerIndex].subjugatedBy == realmIndex;
         }
 
-        public EFactionFlag GetRealmFaction(int realmIndex)
+        public EFactionFlag GetRealmFaction(byte realmIndex)
         {
             return this.rules.factions.factionFlags[realms[realmIndex].factionIndex].flag;
         }
 
-        public EFactionFlag GetAllianceFaction(int realmIndex)
+        public EFactionFlag GetAllianceFaction(byte realmIndex)
         {
+            if (!IsValidRealmIndex(realmIndex)) {
+                return default;
+            }
+
             EFactionFlag faction = GetRealmFaction(realmIndex);
             if (realms[realmIndex].IsSubjugated(out byte subjugator)) {
                 faction |= GetRealmFaction(subjugator);
             }
 
-            for (int i = 0; i < realms.Length; i++) {
+            for (byte i = 0; i < realms.Length; i++) {
                 if (realms[i].IsSubjugated(out byte theirSubjugator) && 
                     (theirSubjugator == subjugator || theirSubjugator == realmIndex)) {
                     faction |= GetRealmFaction(i);
@@ -295,7 +324,8 @@ namespace LouveSystems.K2.Lib
 
         public bool GetRegionFactionIndex(int regionIndex, out byte factionIndex)
         {
-            if (regions[regionIndex].GetOwner(out byte realmIndex)) {
+            if (IsValidRegionIndex(regionIndex) &&
+                regions[regionIndex].GetOwner(out byte realmIndex)) {
                 factionIndex = realms[realmIndex].factionIndex;
                 return true;
             }
@@ -306,6 +336,10 @@ namespace LouveSystems.K2.Lib
 
         public EFactionFlag GetRegionAllianceFaction(int regionIndex)
         {
+            if (!IsValidRegionIndex(regionIndex)) {
+                return default;
+            }
+
             if (regions[regionIndex].GetOwner(out byte realmIndex)) {
                 return GetAllianceFaction(realmIndex);
             }
@@ -315,7 +349,7 @@ namespace LouveSystems.K2.Lib
 
         public EFactionFlag GetRegionFaction(int regionIndex)
         {
-            if (regions[regionIndex].GetOwner(out byte realmIndex)) {
+            if (IsValidRegionIndex(regionIndex) && regions[regionIndex].GetOwner(out byte realmIndex)) {
                 return GetRealmFaction(realmIndex);
             }
 
@@ -324,12 +358,20 @@ namespace LouveSystems.K2.Lib
 
         public int GetRegionSilverWorth(int regionIndex)
         {
+            if (!IsValidRegionIndex(regionIndex)) {
+                return default;
+            }
+
             EFactionFlag faction = GetRegionFaction(regionIndex);
             return regions[regionIndex].GetSilverWorth(faction, rules);
         }
 
         public int GetRegionLootableSilverWorth(int regionIndex, byte lootingRealm)
         {
+            if (!IsValidRegionIndex(regionIndex)) {
+                return default;
+            }
+
             int silver;
             EFactionFlag lootingRealmFaction = GetRealmFaction(lootingRealm);
 
@@ -359,6 +401,14 @@ namespace LouveSystems.K2.Lib
 
         public bool CanRealmAttackRegion(byte realmIndex, int regionIndex)
         {
+            if (!IsValidRegionIndex(regionIndex)) {
+                return default;
+            }
+
+            if (!IsValidRealmIndex(realmIndex)) {
+                return default;
+            }
+
             if (regions[regionIndex].inert) {
                 return false;
             }
@@ -390,6 +440,10 @@ namespace LouveSystems.K2.Lib
 
         public bool GetAttackTargetsForRegionNoAlloc(int regionIndex, bool canExtendRange, in List<int> attackTargets)
         {
+            if (!IsValidRegionIndex(regionIndex)) {
+                return default;
+            }
+
             if (regions[regionIndex].inert)
                 return false;
 
@@ -418,7 +472,7 @@ namespace LouveSystems.K2.Lib
 
                     int neighborIndex = Index(neighborPosition);
 
-                    if (!IsValidIndex(neighborIndex)) {
+                    if (!IsValidRegionIndex(neighborIndex)) {
                         break;
                     }
 
@@ -442,6 +496,13 @@ namespace LouveSystems.K2.Lib
 
         public bool GetNaturalOwnerFromNeighbors(int regionIndex, ManagedRandom randomOptional, bool discardCurrentOwner, out byte newOwner, out bool wasCoinFlip, out bool isTotallySurrounded)
         {
+            if (!IsValidRegionIndex(regionIndex)) {
+                newOwner = default;
+                wasCoinFlip = default;
+                isTotallySurrounded = default;
+                return default;
+            }
+
             int[] neighbors = GetNeighboringRegions(regionIndex);
 
             int maxOwnedConnections = 0;
@@ -530,9 +591,13 @@ namespace LouveSystems.K2.Lib
 
         public void GetTerritoryOfRealm(byte realmIndex, in List<int> regions, bool includeSubjugated)
         {
+            if (!IsValidRealmIndex(realmIndex)) {
+                return;
+            }
+
             if (includeSubjugated) {
                 realmPoolBuffer.Clear();
-                GetAlliedOrSubjugatedRealms(realmIndex, realmPoolBuffer);
+                GetAllianceRealms(realmIndex, realmPoolBuffer);
 
                 // Add up territories
                 for (int i = 0; i < realmPoolBuffer.Count; i++) {
@@ -548,8 +613,12 @@ namespace LouveSystems.K2.Lib
             }
         }
 
-        public void GetAlliedOrSubjugatedRealms(byte realmIndex, in List<byte> realmPool)
+        public void GetAllianceRealms(byte realmIndex, in List<byte> realmPool)
         {
+            if (!IsValidRealmIndex(realmIndex)) {
+                return;
+            }
+
             realmPool.Add(realmIndex);
 
             if (realms[realmIndex].IsSubjugated(out byte myRuler)) {
@@ -582,6 +651,10 @@ namespace LouveSystems.K2.Lib
 
         public void GetAllConnectedRegions(int startingPoint, in ICollection<int> regionsIndices, Predicate<Region> filter)
         {
+            if (!IsValidRegionIndex(startingPoint)) {
+                return;
+            }
+
             regionsIndices.Add(startingPoint);
             int[] neighbors = GetNeighboringRegions(startingPoint);
             byte owner = regions[startingPoint].ownerIndex;
@@ -603,6 +676,10 @@ namespace LouveSystems.K2.Lib
 
         public void GetAllConnectedRegionsOfSameOwner(int startingPoint, in ICollection<int> regionsIndices)
         {
+            if (!IsValidRegionIndex(startingPoint)) {
+                return;
+            }
+
             bool hasOwner = regions[startingPoint].isOwned;
             byte owner = regions[startingPoint].ownerIndex;
 
@@ -625,7 +702,7 @@ namespace LouveSystems.K2.Lib
 
             oppositeRegionIndex = Index(opposite);
 
-            return IsValidIndex(oppositeRegionIndex);
+            return IsValidRegionIndex(oppositeRegionIndex);
         }
 
         private Position GetOppositePosition(in Position centralPoint, in Position positionToMirror)
@@ -832,6 +909,10 @@ namespace LouveSystems.K2.Lib
 
         private void InitializeRealm(byte realmIndex, in Position startingPosition, byte size=1)
         {
+            if (!IsValidRealmIndex(realmIndex)) {
+                return;
+            }
+
             ref Region region = ref regions[Index(startingPosition)];
 
             region.buildings = EBuilding.Capital;
@@ -884,7 +965,12 @@ namespace LouveSystems.K2.Lib
             return position.x >= 0 && position.y >= 0 && position.x < SideLength && position.y < SideLength;
         }
 
-        private bool IsValidIndex(int index)
+        private bool IsValidRealmIndex(byte index)
+        {
+            return index >= 0 && index < realms.Length;
+        }
+
+        private bool IsValidRegionIndex(int index)
         {
             return index >= 0 && index < regions.Length;
         }
@@ -918,7 +1004,7 @@ namespace LouveSystems.K2.Lib
             from.Read(default, ref realms);
             from.Read(default, ref startingPositions);
 
-            rules.Read(default, from);
+            rules.Read(from);
         }
 
         public int GetHash()

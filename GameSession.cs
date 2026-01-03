@@ -188,6 +188,24 @@ namespace LouveSystems.K2.Lib
             return CurrentGameState.world.Realms[realmIndex].IsSubjugated(out subjugatingRealmIndex);
         }
 
+        public List<SessionPlayer> GetAlliance(SessionPlayer containingPlayer)
+        {
+            List<byte> alliedRealms = new List<byte>();
+            CurrentGameState.world.GetAllianceRealms(containingPlayer.RealmIndex, alliedRealms);
+
+            List<SessionPlayer> alliance = new List<SessionPlayer>(alliedRealms.Count);
+            for (int i = 0; i < alliedRealms.Count; i++) {
+                foreach(var kv in sessionPlayers) {
+                    if (kv.Value.RealmIndex == alliedRealms[i]) {
+                        alliance.Add(kv.Value);
+                        break;
+                    }
+                }
+            }
+
+            return alliance;
+        }
+
         public bool GetOwnerOfRealm(int realmIndex, out byte owningPlayerId, bool subjugator = true)
         {
             if (subjugator &&

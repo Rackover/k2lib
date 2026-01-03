@@ -172,5 +172,42 @@ namespace LouveSystems.K2.Lib
                 collection.Add(elem);
             }
         }
+
+        public static byte EnsurePositiveEqualOrUnder(this byte value, byte ceiling)
+        {
+            if (value < 0) {
+                return 0;
+            }
+
+            if (value >= ceiling) {
+                return (byte)(ceiling - 1);
+            }
+
+            return value;
+        }
+
+        public static int EnsurePositiveEqualOrUnder(this int value, int ceiling)
+        {
+            if (value < 0) {
+                return 0;
+            }
+
+            if (value >= ceiling) {
+                return ceiling - 1;
+            }
+
+            return value;
+        }
+
+        public static int EnsurePositiveUnder(this int value, int ceiling)
+        {
+            int clamped = value.EnsurePositiveEqualOrUnder(ceiling);
+
+            if (clamped >= ceiling) {
+                return ceiling - 1;
+            }
+
+            return clamped;
+        }
     }
 }

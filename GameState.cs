@@ -8,8 +8,10 @@ namespace LouveSystems.K2.Lib
     using System.Linq;
     using System.Threading;
 
-    public struct GameState : IBinarySerializableWithVersion
+    public struct GameState : IBinarySerializable
     {
+        const byte VERSION = 1;
+
         public int daysPassed;
         public int councilsPassed;
         public int daysRemainingBeforeNextCouncil;
@@ -710,6 +712,7 @@ namespace LouveSystems.K2.Lib
 
         public void Write(BinaryWriter into)
         {
+            into.Write(VERSION);
             into.Write(daysPassed);
             into.Write(councilsPassed);
             into.Write(daysRemainingBeforeNextCouncil);
@@ -717,8 +720,10 @@ namespace LouveSystems.K2.Lib
             into.Write(voting);
         }
 
-        public void Read(byte version, BinaryReader from)
+        public void Read(BinaryReader from)
         {
+            byte version = from.ReadByte();
+
             daysPassed = from.ReadInt32();
             councilsPassed = from.ReadInt32();
             daysRemainingBeforeNextCouncil = from.ReadInt32();
@@ -726,7 +731,7 @@ namespace LouveSystems.K2.Lib
             world = World.Empty();
             world.Read(version, from);
 
-            voting = new Voting(new GameRules());
+            voting = new Voting(rules);
             voting.Read(version, from);
         }
     }

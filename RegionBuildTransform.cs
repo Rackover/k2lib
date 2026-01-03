@@ -28,7 +28,7 @@ namespace LouveSystems.K2.Lib
         public bool IsPrioritized(in World world)
         {
             if (building == EBuilding.Fort &&
-                world.GetRegionFaction(this.actingRegionIndex) == EFactionFlag.FortsCountAsCapital) {
+                world.GetRegionFaction(this.actingRegionIndex).HasFlagSafe(EFactionFlag.FortsCountAsCapital)) {
                 return true;
             }
 

@@ -7,7 +7,7 @@ namespace LouveSystems.K2.Lib
 
 
     [System.Serializable]
-    public abstract class Transform : IBinarySerializableWithVersion
+    public abstract class Transform : IBinarySerializable
     {
         public enum ETransformKind
         {
@@ -48,7 +48,7 @@ namespace LouveSystems.K2.Lib
                     return new RegionBuildTransform();
             }
 
-            throw new System.Exception($"Unkown {kind}");
+            throw new System.Exception($"Unknown {kind}");
         }
 
         public Transform(byte owningRealm)
@@ -60,7 +60,7 @@ namespace LouveSystems.K2.Lib
             }
         }
 
-        public void Read(byte version, BinaryReader from)
+        public void Read(BinaryReader from)
         {
             this.uniqueId = from.ReadInt32();
             owningRealm = from.ReadByte();
