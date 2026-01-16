@@ -74,17 +74,25 @@ namespace LouveSystems.K2.Lib
             gameState.daysRemainingBeforeNextCouncil = (byte)(parameters.turnsBetweenVotes + parameters.initialVoteTurnsDelay);
         }
 
-        public bool GetPlannedConstructionForRegion(int regionIndex, out EBuilding building)
+        public bool GetPlannedConstructionForRegion(int regionIndex, out SessionPlayer player, out EBuilding building)
         {
-            foreach (var player in SessionPlayers) {
-                if (player.Value.IsBuildingSomething(regionIndex, out building)) {
+            foreach (var sessionPlayer in SessionPlayers) {
+                if (sessionPlayer.Value.IsBuildingSomething(regionIndex, out building)) {
+                    player = sessionPlayer.Value;
                     return true;
                 }
             }
 
+            player = default;
             building = default;
             return false;
         }
+
+        public bool GetPlannedConstructionForRegion(int regionIndex, out EBuilding building)
+        {
+            return GetPlannedConstructionForRegion(regionIndex, out _, out building);
+        }
+
 
         public bool EverybodyHasPlayed()
         {
@@ -204,6 +212,20 @@ namespace LouveSystems.K2.Lib
             }
 
             return alliance;
+        }
+
+        
+        public bool GetOwnerOfRealm(int realmIndex, out SessionPlayer player, bool subjugator = true)
+        {
+            if (GetOwnerOfRealm(realmIndex, out byte pId, subjugator))
+            {
+                player = SessionPlayers[pId];
+                return true;
+            }
+
+            player = default;
+            
+            return false;
         }
 
         public bool GetOwnerOfRealm(int realmIndex, out byte owningPlayerId, bool subjugator = true)

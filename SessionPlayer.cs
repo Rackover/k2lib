@@ -22,6 +22,22 @@ namespace LouveSystems.K2.Lib
         {
             this.gameSession = session;
         }
+        
+        public bool CanSeeAttacksOf(byte realmIndex)
+        {
+            return gameSession.CurrentGameState.world.CanSeeAttacksOf(RealmIndex, realmIndex);
+        }
+
+        public bool CanSeeAttacksOf(SessionPlayer otherSessionPlayer)
+        {
+            return CanSeeAttacksOf(otherSessionPlayer.RealmIndex);
+        }
+
+        
+        public bool CanSeePlannedConstructionsOf(SessionPlayer otherSessionPlayer)
+        {
+            return gameSession.CurrentGameState.world.CanSeePlannedConstructionsOf(RealmIndex, otherSessionPlayer.RealmIndex);
+        }
 
         public bool GetPlannedConstructions(List<EBuilding> plannedBuildings)
         {
@@ -232,7 +248,7 @@ namespace LouveSystems.K2.Lib
             return true;
         }
 
-        public bool IsLocalPlayerFavoured()
+        public bool IsFavoured()
         {
             return gameSession.IsFavoured(RealmIndex);
         }
@@ -261,7 +277,7 @@ namespace LouveSystems.K2.Lib
                 return false;
             }
 
-            if (IsLocalPlayerFavoured()) {
+            if (IsFavoured()) {
                 return false;
             }
 

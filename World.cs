@@ -277,6 +277,52 @@ namespace LouveSystems.K2.Lib
             return IsCouncilRealm(realmIndex) || this.realms[realmIndex].isSubjugated;
         }
 
+        public bool CanSeeAttacksOf(byte realmIndex, byte otherRealm)
+        {
+            if (realmIndex == otherRealm)
+            {
+                return true;
+            }
+
+            if (IsRealmAlliedWith(realm, otherRealm))
+            {
+                return true;
+            }
+
+            return false;
+        }
+
+        
+        public bool CanSeePlannedConstructionsOf(byte realmIndex, byte otherRealm)
+        {
+            if (realmIndex == otherRealm)
+            {
+                return true;
+            }
+
+            if (GetAllianceFaction(realmIndex).HasFlagSafe(EFactionFlag.SeeEnemyPlannedConstructions)) {
+                return true;
+            }
+
+            if (IsRealmAlliedWith(realm, otherRealm))
+            {
+                return true;
+            }
+
+            return false;
+        }
+
+        public bool IsRealmAlliedWith(byte realmIndex, byte otherRealm)
+        {
+            realmPoolBuffer.Clear();
+            if (GetAllianceRealms(realm).Contains(otherRealm, realmPoolBuffer))
+            {
+                return true;
+            }
+
+            return false;
+        }
+
         public bool IsActionableRegion(byte realmIndex, int regionIndex)
         {
             if (!IsValidRegionIndex(regionIndex) || !IsValidRealmIndex(realmIndex)) {
