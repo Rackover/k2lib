@@ -277,14 +277,14 @@ namespace LouveSystems.K2.Lib
             return IsCouncilRealm(realmIndex) || this.realms[realmIndex].isSubjugated;
         }
 
-        public bool CanSeeAttacksOf(byte realmIndex, byte otherRealm)
+        public bool CanSeePlannedAttacksOf(byte realmIndex, byte otherRealm)
         {
             if (realmIndex == otherRealm)
             {
                 return true;
             }
 
-            if (IsRealmAlliedWith(realm, otherRealm))
+            if (IsRealmAlliedWith(realmIndex, otherRealm))
             {
                 return true;
             }
@@ -304,7 +304,7 @@ namespace LouveSystems.K2.Lib
                 return true;
             }
 
-            if (IsRealmAlliedWith(realm, otherRealm))
+            if (IsRealmAlliedWith(realmIndex, otherRealm))
             {
                 return true;
             }
@@ -315,7 +315,8 @@ namespace LouveSystems.K2.Lib
         public bool IsRealmAlliedWith(byte realmIndex, byte otherRealm)
         {
             realmPoolBuffer.Clear();
-            if (GetAllianceRealms(realm).Contains(otherRealm, realmPoolBuffer))
+            GetAllianceRealms(realmIndex, realmPoolBuffer);
+            if (realmPoolBuffer.Contains(otherRealm))
             {
                 return true;
             }
@@ -517,10 +518,6 @@ namespace LouveSystems.K2.Lib
                     }
 
                     int neighborIndex = Index(neighborPosition);
-
-                    if (!IsValidRegionIndex(neighborIndex)) {
-                        break;
-                    }
 
                     if (!CanRealmAttackRegion(regions[regionIndex].ownerIndex, neighborIndex)) {
                         break;

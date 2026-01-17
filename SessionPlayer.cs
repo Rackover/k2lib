@@ -2,6 +2,7 @@
 namespace LouveSystems.K2.Lib
 {
     using System.Collections.Generic;
+    using System.Diagnostics;
     using System.Linq;
 
     public class SessionPlayer
@@ -23,20 +24,24 @@ namespace LouveSystems.K2.Lib
             this.gameSession = session;
         }
         
-        public bool CanSeeAttacksOf(byte realmIndex)
+        public bool CanSeePlannedAttacksOf(byte realmIndex)
         {
-            return gameSession.CurrentGameState.world.CanSeeAttacksOf(RealmIndex, realmIndex);
+            return gameSession.CurrentGameState.world.CanSeePlannedAttacksOf(RealmIndex, realmIndex);
         }
 
-        public bool CanSeeAttacksOf(SessionPlayer otherSessionPlayer)
+        public bool CanSeePlannedAttacksOf(SessionPlayer otherSessionPlayer)
         {
-            return CanSeeAttacksOf(otherSessionPlayer.RealmIndex);
+            return CanSeePlannedAttacksOf(otherSessionPlayer.RealmIndex);
         }
-
         
         public bool CanSeePlannedConstructionsOf(SessionPlayer otherSessionPlayer)
         {
             return gameSession.CurrentGameState.world.CanSeePlannedConstructionsOf(RealmIndex, otherSessionPlayer.RealmIndex);
+        }
+
+        public bool CanSeePlannedConstructionsOf(byte realmIndex)
+        {
+            return gameSession.CurrentGameState.world.CanSeePlannedConstructionsOf(RealmIndex, realmIndex);
         }
 
         public bool GetPlannedConstructions(List<EBuilding> plannedBuildings)
@@ -76,6 +81,16 @@ namespace LouveSystems.K2.Lib
 
         public void PlanAttack(int fromRegionIndex, int toRegionIndex)
         {
+            if (gameSession.CurrentGameState.world.Regions[toRegionIndex].inert) {
+                Logger.Warn($"Discarding attack plann {fromRegionIndex}=>{toRegionIndex}: target is inert");
+                return;
+            }
+
+            if (gameSession.CurrentGameState.world.Regions[fromRegionIndex].inert) {
+                Logger.Warn($"Discarding attack plann {fromRegionIndex}=>{toRegionIndex}: origin is inert");
+                return;
+            }
+
             List<int> neighbors = new List<int>(6);
             gameSession.CurrentGameState.world.GetNeighboringRegions(fromRegionIndex, neighbors);
 
@@ -255,7 +270,12 @@ namespace LouveSystems.K2.Lib
 
         public void PlanConstruction(int regionIndex, EBuilding building)
         {
-            // We add an attack transform
+            if (gameSession.CurrentGameState.world.Regions[regionIndex].buildings != EBuilding.None) {
+                Logger.Warn($"Discarding construction plan {building} on {regionIndex}: target already hosts {gameSession.CurrentGameState.world.Regions[regionIndex].buildings}");
+                return;
+            }
+
+            // We add a build transform
             RegionBuildTransform transform = new RegionBuildTransform(
                 building,
                 gameSession.Rules.GetBuilding(building).silverCost,
