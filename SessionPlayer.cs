@@ -23,7 +23,7 @@ namespace LouveSystems.K2.Lib
         {
             this.gameSession = session;
         }
-        
+
         public bool CanSeePlannedAttacksOf(byte realmIndex)
         {
             return gameSession.CurrentGameState.world.CanSeePlannedAttacksOf(RealmIndex, realmIndex);
@@ -33,7 +33,7 @@ namespace LouveSystems.K2.Lib
         {
             return CanSeePlannedAttacksOf(otherSessionPlayer.RealmIndex);
         }
-        
+
         public bool CanSeePlannedConstructionsOf(SessionPlayer otherSessionPlayer)
         {
             return gameSession.CurrentGameState.world.CanSeePlannedConstructionsOf(RealmIndex, otherSessionPlayer.RealmIndex);
@@ -81,29 +81,35 @@ namespace LouveSystems.K2.Lib
 
         public void PlanAttack(int fromRegionIndex, int toRegionIndex)
         {
-            if (gameSession.CurrentGameState.world.Regions[toRegionIndex].inert) {
-                Logger.Warn($"Discarding attack plann {fromRegionIndex}=>{toRegionIndex}: target is inert");
+            if (AnyDecisionsRemaining()) {
+                if (gameSession.CurrentGameState.world.Regions[toRegionIndex].inert) {
+                    Logger.Warn($"Discarding attack plan {fromRegionIndex}=>{toRegionIndex}: target is inert");
+                    return;
+                }
+
+                if (gameSession.CurrentGameState.world.Regions[fromRegionIndex].inert) {
+                    Logger.Warn($"Discarding attack plan {fromRegionIndex}=>{toRegionIndex}: origin is inert");
+                    return;
+                }
+
+                List<int> neighbors = new List<int>(6);
+                gameSession.CurrentGameState.world.GetNeighboringRegions(fromRegionIndex, neighbors);
+
+                bool isExtendedAttack = !neighbors.Contains(toRegionIndex);
+
+                RegionAttackRegionTransform transform = new RegionAttackRegionTransform(
+                    fromRegionIndex,
+                    toRegionIndex,
+                    isExtendedAttack: isExtendedAttack,
+                    RealmIndex
+                );
+
+                Act(transform);
+            }
+            else {
+                Logger.Warn($"Discarding attack plan {fromRegionIndex}=>{toRegionIndex}: no decisions remaining for realm {RealmIndex}!");
                 return;
             }
-
-            if (gameSession.CurrentGameState.world.Regions[fromRegionIndex].inert) {
-                Logger.Warn($"Discarding attack plann {fromRegionIndex}=>{toRegionIndex}: origin is inert");
-                return;
-            }
-
-            List<int> neighbors = new List<int>(6);
-            gameSession.CurrentGameState.world.GetNeighboringRegions(fromRegionIndex, neighbors);
-
-            bool isExtendedAttack = !neighbors.Contains(toRegionIndex);
-
-            RegionAttackRegionTransform transform = new RegionAttackRegionTransform(
-                fromRegionIndex,
-                toRegionIndex,
-                isExtendedAttack: isExtendedAttack,
-                RealmIndex
-            );
-
-            Act(transform);
         }
 
         public bool GetPlannedAttacks(List<RegionAttackRegionTransform> plannedAttacks)
@@ -270,21 +276,28 @@ namespace LouveSystems.K2.Lib
 
         public void PlanConstruction(int regionIndex, EBuilding building)
         {
-            if (gameSession.CurrentGameState.world.Regions[regionIndex].buildings != EBuilding.None) {
-                Logger.Warn($"Discarding construction plan {building} on {regionIndex}: target already hosts {gameSession.CurrentGameState.world.Regions[regionIndex].buildings}");
+            if (AnyDecisionsRemaining()) {
+
+                if (gameSession.CurrentGameState.world.Regions[regionIndex].buildings != EBuilding.None) {
+                    Logger.Warn($"Discarding construction plan {building} on {regionIndex}: target already hosts {gameSession.CurrentGameState.world.Regions[regionIndex].buildings}");
+                    return;
+                }
+
+                // We add a build transform
+                RegionBuildTransform transform = new RegionBuildTransform(
+                    building,
+                    gameSession.Rules.GetBuilding(building).silverCost,
+                    RealmIndex,
+                    regionIndex,
+                    RealmIndex
+                );
+
+                Act(transform);
+            }
+            else {
+                Logger.Warn($"Discarding construction plan {building}=>{regionIndex}: no decisions remaining for realm {RealmIndex}!");
                 return;
             }
-
-            // We add a build transform
-            RegionBuildTransform transform = new RegionBuildTransform(
-                building,
-                gameSession.Rules.GetBuilding(building).silverCost,
-                RealmIndex,
-                regionIndex,
-                RealmIndex
-            );
-
-            Act(transform);
         }
 
         public bool CanPayForFavours()
@@ -326,24 +339,34 @@ namespace LouveSystems.K2.Lib
 
         public void PayForFavours()
         {
-            Act(
-                new PayFavoursTransform(
-                    RealmIndex,
-                    gameSession.Rules.favourGoldPrice * 10,
-                    RealmIndex
-                )
-            );
+            if (CanPayForFavours()) {
+                Act(
+                    new PayFavoursTransform(
+                        RealmIndex,
+                        gameSession.Rules.favourGoldPrice * 10,
+                        RealmIndex
+                    )
+                );
+            }
+            else {
+                Logger.Warn($"Discarding {nameof(PayForFavours)} plan by {RealmIndex}!");
+            }
         }
 
         public void UpgradeAdministration()
         {
-            Act(
-                new AdminUpgradeTransform(
-                    RealmIndex,
-                    GetAdministrationUpgradeSilverCost(),
-                    RealmIndex
-                )
-            );
+            if (CanUpgradeAdministration()) {
+                Act(
+                    new AdminUpgradeTransform(
+                        RealmIndex,
+                        GetAdministrationUpgradeSilverCost(),
+                        RealmIndex
+                    )
+                );
+            }
+            else {
+                Logger.Warn($"Discarding {nameof(UpgradeAdministration)} plan by {RealmIndex}!");
+            }
         }
 
         public int GetAdministrationUpgradeSilverCost()

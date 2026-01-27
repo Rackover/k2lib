@@ -63,7 +63,9 @@ namespace LouveSystems.K2.Lib
 
             public bool IsFactionFeatForNewOwner(in GameState state)
             {
-                return IsFactionFeatFor(state.world.GetRealmFaction(newOwningRealm));
+                return 
+                    newOwningRealm != byte.MaxValue &&
+                    IsFactionFeatFor(state.world.GetRealmFaction(newOwningRealm));
             }
 
             public bool IsFactionFeatFor(EFactionFlag flag)
