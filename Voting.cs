@@ -101,12 +101,13 @@ namespace LouveSystems.K2.Lib
 
             public void OrderScores()
             {
-                List<VoteScore> orderedScores = new List<VoteScore>(scores);
+                VoteScore[] orderedScores = 
+                    scores
+                        .OrderBy((o) => o.totalVotes)
+                        .ThenBy((o) => o.realmIndex)
+                        .ToArray(); // Deterministic tie breaker
 
-                // According to MSDN this is deterministic
-                orderedScores.Sort((a, b) => b.totalVotes.CompareTo(a.totalVotes));
-
-                for (int i = 0; i < orderedScores.Count; i++) {
+                for (int i = 0; i < orderedScores.Length; i++) {
                     scores[i] = orderedScores[i];
                 }
             }
