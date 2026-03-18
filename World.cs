@@ -354,12 +354,14 @@ namespace LouveSystems.K2.Lib
                 return default;
             }
 
+            EFactionFlag faction = default;
+
             realmPoolBuffer.Clear();
             GetAllianceRealms(realmIndex, realmPoolBuffer); // This includes me
 
             for (byte i = 0; i < realmPoolBuffer.Count; i++) {
-                int realmIndex = realmPoolBuffer[i];
-                faction |= GetRealmFaction(realmIndex);
+                byte alliedRealmIndex = realmPoolBuffer[i];
+                faction |= GetRealmFaction(alliedRealmIndex);
 
             }
 
