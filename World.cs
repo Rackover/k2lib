@@ -354,16 +354,13 @@ namespace LouveSystems.K2.Lib
                 return default;
             }
 
-            EFactionFlag faction = GetRealmFaction(realmIndex);
-            if (realms[realmIndex].IsSubjugated(out byte subjugator)) {
-                faction |= GetRealmFaction(subjugator);
-            }
+            realmPoolBuffer.Clear();
+            GetAllianceRealms(realmIndex, realmPoolBuffer); // This includes me
 
-            for (byte i = 0; i < realms.Length; i++) {
-                if (realms[i].IsSubjugated(out byte theirSubjugator) && 
-                    (theirSubjugator == subjugator || theirSubjugator == realmIndex)) {
-                    faction |= GetRealmFaction(i);
-                }
+            for (byte i = 0; i < realmPoolBuffer.Count; i++) {
+                int realmIndex = realmPoolBuffer[i];
+                faction |= GetRealmFaction(realmIndex);
+
             }
 
             return faction;
@@ -664,7 +661,8 @@ namespace LouveSystems.K2.Lib
 
             realmPool.Add(realmIndex);
 
-            if (realms[realmIndex].IsSubjugated(out byte myRuler)) {
+            bool isSubjugated = realms[realmIndex].IsSubjugated(out byte myRuler);
+            if (isSubjugated) {
                 realmPool.Add(myRuler);
             }
 
@@ -673,7 +671,24 @@ namespace LouveSystems.K2.Lib
                     continue;
                 }
 
-                if (realms[i].IsSubjugated(out byte subjugator) && (subjugator == realmIndex || subjugator == myRuler)) {
+                bool isAllied = false;
+                if (realms[i].IsSubjugated(out byte subjugator)) {
+                    if (subjugator == realmIndex)
+                    {
+                        isAllied = true;
+                    }
+                    else if (isSubjugated && myRuler == subjugator)
+                    {
+                        isAllied = true;
+                    }
+                }
+                else if (isSubjugated && myRuler == realmIndex)
+                {
+                    isAllied = true;
+                }
+
+                if (isAllied)
+                {
                     if (!realmPool.Contains(i)) {
                         realmPool.Add(i);
                     }

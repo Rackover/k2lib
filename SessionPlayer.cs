@@ -24,9 +24,9 @@ namespace LouveSystems.K2.Lib
             this.gameSession = session;
         }
 
-        public bool CanSeePlannedAttacksOf(byte realmIndex)
+        public bool CanSeePlannedAttacksOf(byte otherRealmIndex)
         {
-            return gameSession.CurrentGameState.world.CanSeePlannedAttacksOf(RealmIndex, realmIndex);
+            return gameSession.CurrentGameState.world.CanSeePlannedAttacksOf(RealmIndex, otherRealmIndex);
         }
 
         public bool CanSeePlannedAttacksOf(SessionPlayer otherSessionPlayer)
@@ -39,9 +39,9 @@ namespace LouveSystems.K2.Lib
             return gameSession.CurrentGameState.world.CanSeePlannedConstructionsOf(RealmIndex, otherSessionPlayer.RealmIndex);
         }
 
-        public bool CanSeePlannedConstructionsOf(byte realmIndex)
+        public bool CanSeePlannedConstructionsOf(byte otherRealmIndex)
         {
-            return gameSession.CurrentGameState.world.CanSeePlannedConstructionsOf(RealmIndex, realmIndex);
+            return gameSession.CurrentGameState.world.CanSeePlannedConstructionsOf(RealmIndex, otherRealmIndex);
         }
 
         public bool GetPlannedConstructions(List<EBuilding> plannedBuildings)
