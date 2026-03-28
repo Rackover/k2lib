@@ -513,7 +513,7 @@ namespace LouveSystems.K2.Lib
 
                 Region target = world.Regions[transform.targetRegionIndex];
                 EFactionFlag attackingFaction = world.GetAllianceFaction(attackOwner);
-
+                
                 ITransformEffect.ConquestEffect effect = new ITransformEffect.ConquestEffect();
                 effect.regionIndex = transform.targetRegionIndex;
                 effect.attackingRealm = attackOwner;
@@ -588,7 +588,10 @@ namespace LouveSystems.K2.Lib
 
                 // Subjugation
                 bool canSubjugate = rules.subjugationForAll
-                    || attackingFaction.HasFlagSafe(EFactionFlag.Subjugate) ;
+                    || (rules.factions.vassalsCanSubjugate ? 
+                        attackingFaction.HasFlagSafe(EFactionFlag.Subjugate) :
+                        world.GetRealmFaction(attackOwner).HasFlagSafe(EFactionFlag.Subjugate)
+                    );
 
                 if (canSubjugate && 
                     target.isOwned &&

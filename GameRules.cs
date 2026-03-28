@@ -41,6 +41,8 @@ namespace LouveSystems.K2.Lib
 
             public byte conqueredFortPayout;
 
+            public bool vassalsCanSubjugate;
+
             public FactionSettings[] factionFlags;
 
             public void Read(byte version, BinaryReader from)

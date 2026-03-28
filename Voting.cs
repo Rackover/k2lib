@@ -101,7 +101,7 @@ namespace LouveSystems.K2.Lib
 
             public void OrderScores()
             {
-                VoteScore[] orderedScores = 
+                VoteScore[] orderedScores =
                     scores
                         .OrderBy((o) => o.totalVotes)
                         .ThenBy((o) => o.realmIndex)
@@ -362,13 +362,13 @@ namespace LouveSystems.K2.Lib
                     while (!result.HasMajorityWinner(out byte _)) {
 
                         // take votes from others
-                        for (int i = result.scores.Length-2; i >= 0; i --) {
+                        for (int i = result.scores.Length - 1; i >= 1; i--) {
 
                             if (result.scores[i].totalVotes > 0) {
                                 result.scores[i].totalVotes--;
                                 result.scores[0].totalVotes++;
-                                
-                                if (result.scores[i].totalVotes <= 0 && 
+
+                                if (result.scores[i].totalVotes <= 0 &&
                                     result.scores[i].wonCriterias.Count > 0) {
                                     result.scores[i].wonCriterias.Clear();
                                 }
@@ -377,7 +377,7 @@ namespace LouveSystems.K2.Lib
                             }
                         }
 
-                       
+                        result.OrderScores();
                         Logger.Info($"Poll leader now has {result.scores[0].totalVotes} votes (Realm {result.scores[0].realmIndex})");
                     }
                 }
