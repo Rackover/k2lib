@@ -142,6 +142,50 @@ namespace LouveSystems.K2.Lib
                 }
             }
 
+            // < Insert environmental turn here ? >
+
+
+            // Ongoing subjugation persistence
+            {
+                GameState ongoingSubjugationDuplicate = Duplicate();
+                ApplyEffects(effectsList, ref ongoingSubjugationDuplicate);
+
+                for (byte realmIndex = 0; realmIndex < world.Realms.Count; realmIndex++) {
+                    if (world.Realms[realmIndex].IsUnderThreatOfSubjugation(out byte[] oldSubjugators) &&
+                        ongoingSubjugationDuplicate.world.Realms[realmIndex].IsUnderThreatOfSubjugation(out byte[] newSubjugators)
+                    ) {
+                        for (int i = 0; i < oldSubjugators.Length; i++) {
+
+                            byte subjugatorIndex = oldSubjugators[i];
+                            if (newSubjugators.Contains(subjugatorIndex)) {
+                                // situation - a subjugation was ongoing and did not complete just yet
+                                // If at least one non-starved region of my subjugator-in-becoming is touching me, subjugation stalls
+                                // Otherwise, it depops
+                                if (ongoingSubjugationDuplicate.world.GetCapitalOfRealm(realmIndex, out int capitalRegionIndex)) {
+                                    List<int> neighboringRegions = new List<int>();
+                                    ongoingSubjugationDuplicate.world.GetNeighboringRegions(capitalRegionIndex, neighboringRegions);
+
+                                    int[] links = neighboringRegions.Where(regionIndex => 
+                                        ongoingSubjugationDuplicate.world.Regions[regionIndex].GetOwner(out byte regionOwner) &&
+                                        ongoingSubjugationDuplicate.world.IsRealmAlliedWith(regionOwner, subjugatorIndex)
+                                    ).ToArray();
+
+                                    bool persist = links.Length > 0;
+                                    ITransformEffect.PartialSubjugationEvolutionEffect evolutionEffect = new() {
+                                        attackingRealmIndex = subjugatorIndex,
+                                        targetRealmIndex = realmIndex,
+                                        linkedAttackerRegions = links
+                                    };
+
+                                    Logger.Trace($"{(persist ? "Stalling" : "Decreasing")} ongoing subjugation status for {realmIndex} from {subjugatorIndex} because {links.Length} links exist {this}");
+                                    effectsList.Add(evolutionEffect);
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+
             // Construction
             {
                 var constructions = TakeConstructions(world, remainingTransforms);

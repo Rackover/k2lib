@@ -6,7 +6,7 @@ namespace LouveSystems.K2.Lib
     [System.Serializable]
     public class GameRules : IBinarySerializable
     {
-        public const byte VERSION = 4;
+        public const byte VERSION = 5;
 
         [System.Serializable]
         public struct GlobalFactionSettings : IBinarySerializableWithVersion
@@ -42,6 +42,7 @@ namespace LouveSystems.K2.Lib
             public byte conqueredFortPayout;
 
             public bool vassalsCanSubjugate;
+            public byte subjugationAttacksRequired;
 
             public FactionSettings[] factionFlags;
 
@@ -69,6 +70,11 @@ namespace LouveSystems.K2.Lib
                 looterMinimumSilver = from.ReadByte();
 
                 conqueredFortPayout = from.ReadByte();
+
+                if (version >= 5) {
+                    vassalsCanSubjugate = from.ReadBoolean();
+                    subjugationAttacksRequired = from.ReadByte();
+                }
             }
 
             public void Write(BinaryWriter into)
@@ -83,6 +89,9 @@ namespace LouveSystems.K2.Lib
                 into.Write(looterMinimumSilver);
 
                 into.Write(conqueredFortPayout);
+
+                into.Write(vassalsCanSubjugate);
+                into.Write(subjugationAttacksRequired);
             }
         }
 

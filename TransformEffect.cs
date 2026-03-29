@@ -193,6 +193,9 @@ namespace LouveSystems.K2.Lib
             public byte attackingRealmIndex;
             public byte targetRealmIndex;
             public bool isFactionHighlight;
+            public byte attacksBefore;
+            public byte attacksAfter;
+            public bool subjugationCompleted;
 
             public void Apply(in GameState previous, ref GameState next)
             {
@@ -200,39 +203,39 @@ namespace LouveSystems.K2.Lib
                     return; /// Should never happen
                 }
 
-                if (previous.world.Realms[attackingRealmIndex].IsSubjugated(out byte newOwner)) {
-                    // Subjugator takes the subjugated conquests! It spreads!
+                attacksBefore = previous.world.Realms[targetRealmIndex].GetSubjugatingAttacksReceived(attackingRealmIndex);
+                subjugationCompleted = next.world.AttemptSubjugation(attackingRealmIndex, targetRealmIndex);
+                attacksAfter = next.world.Realms[targetRealmIndex].GetSubjugatingAttacksReceived(attackingRealmIndex);
+            }
+        }
+
+        public struct PartialSubjugationEvolutionEffect : ITransformEffect
+        {
+            public bool Stalled => attacksBefore == attacksAfter;
+
+            public byte attackingRealmIndex;
+            public byte targetRealmIndex;
+
+            public bool LinkedToAttacker => linkedAttackerRegions?.Length > 0;
+
+            public int[] linkedAttackerRegions;
+
+            public byte attacksBefore;
+            public byte attacksAfter;
+
+            public void Apply(in GameState previous, ref GameState next)
+            {
+                attacksBefore = previous.world.Realms[targetRealmIndex].GetSubjugatingAttacksReceived(attackingRealmIndex);
+
+                if (LinkedToAttacker) {
+                    // Do nothing
                 }
                 else {
-                    newOwner = attackingRealmIndex;
+                    next.world.Modify(out Region[] regions, out Realm[] realms);
+                    realms[targetRealmIndex].RemoveSubjugatingAttackFrom(attackingRealmIndex);
                 }
 
-                Realm targetRealm = previous.world.Realms[targetRealmIndex];
-                targetRealm.isSubjugated = true;
-                targetRealm.subjugatedBy = newOwner;
-
-                next.world.Modify(out Region[] regions, out Realm[] realms);
-
-                Realm originalRealm = realms[newOwner];
-                originalRealm.silverTreasury += targetRealm.silverTreasury;
-                targetRealm.silverTreasury = 0;
-
-                originalRealm.isFavoured |= targetRealm.isFavoured;
-                targetRealm.isFavoured = false;
-
-                realms[newOwner] = originalRealm;
-                realms[targetRealmIndex] = targetRealm;
-
-                Logger.Trace($"Realm {targetRealmIndex} ({realms[targetRealmIndex]} is now subjugated by realm {newOwner} ({realms[newOwner]})");
-
-                // Also avoid nesting subjugations
-                for (int i = 0; i < realms.Length; i++) {
-                    if (realms[i].IsSubjugated(out byte subjugator) && subjugator == targetRealmIndex) {
-                        // They're mine nows!
-                        realms[i].subjugatedBy = newOwner;
-                        Logger.Trace($"Realm {i} ({realms[i]} is now ALSO subjugated by realm {newOwner} ({realms[newOwner]}) because their prior subjugator was realm {targetRealmIndex}, who's getting subjugated right now");
-                    }
-                }
+                attacksAfter = next.world.Realms[targetRealmIndex].GetSubjugatingAttacksReceived(attackingRealmIndex);
             }
         }
 

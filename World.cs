@@ -172,6 +172,77 @@ namespace LouveSystems.K2.Lib
             realms = this.realms;
         }
 
+        public bool AttemptSubjugation(byte attackingRealmIndex, byte targetRealmIndex)
+        {
+            if (IsValidRealmIndex(attackingRealmIndex) && IsValidRealmIndex(targetRealmIndex)) {
+
+                if (Realms[attackingRealmIndex].IsSubjugated(out byte newOwner)) {
+                    // Subjugator takes the subjugated conquests! It spreads!
+                }
+                else {
+                    newOwner = attackingRealmIndex;
+                }
+
+
+                ref Realm targetRealm = ref realms[targetRealmIndex];
+
+                {
+                    if (targetRealm.IsSubjugated(out byte subjugator) && subjugator == newOwner) {
+                        return false; // Not supposed to happen
+                    }
+                }
+
+                targetRealm.AddSubjugatingAttackFrom(newOwner);
+
+                Logger.Trace($"Realm {targetRealmIndex} ({realms[targetRealmIndex]}) has received 1 subjugating attack from {newOwner} ({realms[newOwner]})");
+
+                if (targetRealm.GetSubjugatingAttacksReceived(newOwner) >= rules.factions.subjugationAttacksRequired) {
+                    SubjugateRealm(attackingRealmIndex, targetRealmIndex);
+                    return true;
+                }
+            }
+
+            return false;
+        }
+
+        public void SubjugateRealm(byte attackingRealmIndex, byte targetRealmIndex)
+        {
+            if (IsValidRealmIndex(attackingRealmIndex) && IsValidRealmIndex(targetRealmIndex)) {
+
+                if (Realms[attackingRealmIndex].IsSubjugated(out byte newOwner)) {
+                    // Subjugator takes the subjugated conquests! It spreads!
+                }
+                else {
+                    newOwner = attackingRealmIndex;
+                }
+
+                ref Realm targetRealm = ref realms[targetRealmIndex];
+                targetRealm.isSubjugated = true;
+                targetRealm.subjugatedBy = newOwner;
+
+                ref Realm newOwningRealm = ref realms[newOwner];
+                newOwningRealm.silverTreasury += targetRealm.silverTreasury;
+                targetRealm.silverTreasury = 0;
+
+                newOwningRealm.isFavoured |= targetRealm.isFavoured;
+                targetRealm.isFavoured = false;
+
+                targetRealm.ClearSubjugatingAttacks();
+
+                Logger.Trace($"Realm {targetRealmIndex} ({realms[targetRealmIndex]}) is now subjugated by realm {newOwner} ({realms[newOwner]})");
+
+                // Also avoid nesting subjugations
+                for (int i = 0; i < realms.Length; i++) {
+                    if (realms[i].IsSubjugated(out byte subjugator) && subjugator == targetRealmIndex) {
+                        // They're mine nows!
+                        realms[i].subjugatedBy = newOwner;
+                        Logger.Trace($"Realm {i} ({realms[i]} is now ALSO subjugated by realm {newOwner} ({realms[newOwner]}) because their prior subjugator was realm {targetRealmIndex}, who's getting subjugated right now");
+                    }
+                }
+
+            }
+        }
+
         public bool IsCompletelySubjugated(out byte realmIndex)
         {
             HashSet<byte> subjugators = new HashSet<byte>(realms.Length);
