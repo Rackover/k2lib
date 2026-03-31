@@ -244,6 +244,8 @@ namespace LouveSystems.K2.Lib
 
         public bool goTakeDestroysBuildings = false;
 
+        public bool alliedRegionsPreventStarvation = true;
+
         public byte turnsBetweenVotes = 4;
 
         public byte initialVoteTurnsDelay = 1;

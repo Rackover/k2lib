@@ -265,7 +265,7 @@ namespace LouveSystems.K2.Lib
                 while (unOwnedRegions.Count > 0) {
                     connected.Clear();
                     int first = unOwnedRegions[0];
-                    world.GetAllConnectedRegionsOfSameOwner(first, connected);
+                    world.GetAllConnectedRegionsPreventingStarvation(first, connected);
                     unOwnedRegions.RemoveAll(connected.Contains);
 
                     bool isolated = true;

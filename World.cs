@@ -805,6 +805,40 @@ namespace LouveSystems.K2.Lib
             }
         }
 
+        public void GetAllConnectedRegionsPreventingStarvation(int startingPoint, in ICollection<int> regionIndices)
+        {
+            if (rules.alliedRegionsPreventStarvation)
+            {
+                GetAllConnectedRegionsOfSameAlliance(startingPoint, regionIndices);
+            }
+            else
+            {
+                GetAllConnectedRegionsOfSameOwner(startingPoint, regionIndices);
+            }
+        }
+
+        public void GetAllConnectedRegionsOfSameAlliance(int startingPoint, in ICollection<int> regionsIndices)
+        {
+            if (!IsValidRegionIndex(startingPoint)) {
+                return;
+            }
+
+            bool hasOwner = regions[startingPoint].isOwned;
+            byte owner = regions[startingPoint].ownerIndex;
+
+            World lambdaCopy = this; // :(
+
+            bool isAlliedWith(byte a, byte b)
+            {
+                return lambdaCopy.IsRealmAlliedWith(a, b);
+            }
+
+            GetAllConnectedRegions(startingPoint, regionsIndices, (r) => 
+                (!r.isOwned && !hasOwner) ||
+                (hasOwner && r.GetOwner(out byte theirOwner) && isAlliedWith(owner, theirOwner))
+            );
+        }
+
         public void GetAllConnectedRegionsOfSameOwner(int startingPoint, in ICollection<int> regionsIndices)
         {
             if (!IsValidRegionIndex(startingPoint)) {
