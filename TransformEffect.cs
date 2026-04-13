@@ -70,7 +70,7 @@ namespace LouveSystems.K2.Lib
 
             public bool IsFactionFeatFor(EFactionFlag flag)
             {
-                if (flag == EFactionFlag.None) {
+                if (this.factionHighlights == EFactionFlag.None) {
                     return false;
                 }
 

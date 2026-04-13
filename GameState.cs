@@ -379,7 +379,7 @@ namespace LouveSystems.K2.Lib
             {
                 for (int i = 0; i < startingPoints.Count; i++) {
                     int centralRegionIndex = startingPoints[i];
-                    world.GetAllConnectedRegionsOfSameOwner(centralRegionIndex, connectedRegions);
+                    world.GetAllConnectedRegionsPreventingStarvation(centralRegionIndex, connectedRegions);
                 }
             }
 
