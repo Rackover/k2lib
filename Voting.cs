@@ -103,7 +103,7 @@ namespace LouveSystems.K2.Lib
             {
                 VoteScore[] orderedScores =
                     scores
-                        .OrderBy((o) => o.totalVotes)
+                        .OrderByDescending((o) => o.totalVotes)
                         .ThenBy((o) => o.realmIndex)
                         .ToArray(); // Deterministic tie breaker
 
