@@ -9,6 +9,8 @@ namespace LouveSystems.K2.Lib
     {
         public byte RealmIndex;
 
+        public byte ControllingRealmIndex => gameSession.CurrentGameState.world.Realms[RealmIndex].IsSubjugated(out byte subjugator) ? subjugator : RealmIndex;
+
         public GameRules Rules => gameSession.Rules;
 
         public byte FactionIndex => gameSession.CurrentGameState.world.Realms[RealmIndex].factionIndex;
@@ -60,6 +62,29 @@ namespace LouveSystems.K2.Lib
             return builds > 0;
         }
 
+        public ERegionAttackType GetAllowedAttackTypes()
+        {
+            ERegionAttackType type = ERegionAttackType.Standard;
+
+            if (CanSlitherAttack()) {
+                type |= ERegionAttackType.Slithering;
+            }
+
+            if (CanExtendAttack()) {
+                type |= ERegionAttackType.Charge;
+            }
+
+            return type;
+        }
+
+        public bool CanSlitherAttack()
+        {
+            if (Faction.HasFlagSafe(EFactionFlag.SlitherAttacksBetweenRegions)) {
+                return true;
+            }
+
+            return false;
+        }
 
         public bool CanExtendAttack()
         {
@@ -67,7 +92,7 @@ namespace LouveSystems.K2.Lib
                 for (int i = 0; i < gameSession.AwaitingTransforms.Count; i++) {
                     if (gameSession.AwaitingTransforms[i].owningRealm == RealmIndex &&
                         gameSession.AwaitingTransforms[i] is RegionAttackRegionTransform attack &&
-                        attack.isExtendedAttack
+                        attack.attackType == ERegionAttackType.Charge
                         ) {
                         return false;
                     }
@@ -79,7 +104,13 @@ namespace LouveSystems.K2.Lib
             return false;
         }
 
-        public void PlanAttack(int fromRegionIndex, int toRegionIndex)
+
+        public void PlanAttack(int fromRegionIndex, AttackTarget target)
+        {
+            PlanAttack(fromRegionIndex, target.regionIndex, target.attackType);
+        }
+
+        public void PlanAttack(int fromRegionIndex, int toRegionIndex, ERegionAttackType type)
         {
             if (AnyDecisionsRemaining()) {
                 if (gameSession.CurrentGameState.world.Regions[toRegionIndex].inert) {
@@ -95,12 +126,10 @@ namespace LouveSystems.K2.Lib
                 List<int> neighbors = new List<int>(6);
                 gameSession.CurrentGameState.world.GetNeighboringRegions(fromRegionIndex, neighbors);
 
-                bool isExtendedAttack = !neighbors.Contains(toRegionIndex);
-
                 RegionAttackRegionTransform transform = new RegionAttackRegionTransform(
                     fromRegionIndex,
                     toRegionIndex,
-                    isExtendedAttack: isExtendedAttack,
+                    attackType: type,
                     RealmIndex
                 );
 
@@ -144,7 +173,7 @@ namespace LouveSystems.K2.Lib
             return attacks > 0;
         }
 
-        public bool IsUnderAttack(int regionIndex, out int attackCount, out bool anyExtendedAttack)
+        public bool IsUnderAttack(int regionIndex, out int attackCount, out ERegionAttackType attackTypes)
         {
             var transforms = gameSession.AwaitingTransforms.FindAll(
                 o =>
@@ -155,7 +184,13 @@ namespace LouveSystems.K2.Lib
 
             attackCount = transforms.Count;
 
-            anyExtendedAttack = transforms.Any(o => o is RegionAttackRegionTransform atk && atk.isExtendedAttack);
+            attackTypes =  ERegionAttackType.Standard;
+
+            for (int i = 0; i < transforms.Count; i++) {
+                if (transforms[i] is RegionAttackRegionTransform atk) {
+                    attackTypes |= atk.attackType;
+                }
+            }
 
             return attackCount > 0;
         }
@@ -283,10 +318,18 @@ namespace LouveSystems.K2.Lib
                     return;
                 }
 
+                bool buildingIsFree = false;
+
+                if (Faction.HasFlagSafe(EFactionFlag.FirstBuildingIsFree)) {
+                    if (!IsBuildingAnything(out int _)) {
+                        buildingIsFree = true;
+                    }
+                }
+
                 // We add a build transform
                 RegionBuildTransform transform = new RegionBuildTransform(
                     building,
-                    gameSession.Rules.GetBuilding(building).silverCost,
+                    buildingIsFree ? 0 : gameSession.Rules.GetBuilding(building).silverCost,
                     RealmIndex,
                     regionIndex,
                     RealmIndex
@@ -328,7 +371,7 @@ namespace LouveSystems.K2.Lib
         public bool FavoursArePlanned()
         {
             return gameSession.AwaitingTransforms.FindIndex(o =>
-            o is PayFavoursTransform favour && favour.realmToFavour == RealmIndex) >= 0;
+            o is PayFavoursTransform favour && favour.realmToFavour == ControllingRealmIndex) >= 0;
         }
 
         public bool AdminUpgradeIsPlanned()
@@ -342,7 +385,7 @@ namespace LouveSystems.K2.Lib
             if (CanPayForFavours()) {
                 Act(
                     new PayFavoursTransform(
-                        RealmIndex,
+                        ControllingRealmIndex,
                         gameSession.Rules.favourGoldPrice * 10,
                         RealmIndex
                     )
@@ -402,8 +445,14 @@ namespace LouveSystems.K2.Lib
                 return false;
             }
 
+            bool buildingIsFree = false;
+            if (Faction.HasFlagSafe(EFactionFlag.FirstBuildingIsFree)) {
+                if (!IsBuildingAnything(out int _)) {
+                    buildingIsFree = true;
+                }
+            }
 
-            if (!CanAfford(settings.silverCost)) {
+            if (!buildingIsFree && !CanAfford(settings.silverCost)) {
                 return false;
             }
 

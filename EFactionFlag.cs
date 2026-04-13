@@ -15,5 +15,7 @@ namespace LouveSystems.K2.Lib
         ConqueredFortsGivePayout = 1 << 6,
         SeeEnemyPlannedConstructions = 1 << 7,
         Subjugate = 1 << 8,
+        FirstBuildingIsFree = 1 << 9,
+        SlitherAttacksBetweenRegions = 1 << 10
     }
 }

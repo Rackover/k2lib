@@ -4,6 +4,8 @@ namespace LouveSystems.K2.Lib
     using System;
     using System.Collections.Generic;
     using System.IO;
+    using System.Linq;
+
     public struct World : IBinarySerializableWithVersion
     {
         private const byte OPTIMAL_REALM_SIZE = 1;
@@ -50,6 +52,15 @@ namespace LouveSystems.K2.Lib
             new AxialPosition(-1,  0),
             new AxialPosition( 0, -1),
             new AxialPosition(-1, +1),
+        };
+
+        private static readonly IReadOnlyList<AxialPosition> AxialSlitherAttackVectors = new AxialPosition[] {
+            new AxialPosition(+2, -1),
+            new AxialPosition(+1, -2),
+            new AxialPosition(-1, -1),
+            new AxialPosition(-2, +1),
+            new AxialPosition(-1, +2),
+            new AxialPosition(+1, +1),
         };
 
         public IReadOnlyList<Region> Regions => regions;
@@ -555,7 +566,7 @@ namespace LouveSystems.K2.Lib
             return true;
         }
 
-        public bool GetAttackTargetsForRegionNoAlloc(int regionIndex, bool canExtendRange, in List<int> attackTargets)
+        public bool GetAttackTargetsForRegionNoAlloc(int regionIndex, ERegionAttackType allowedAttackTypes, in List<AttackTarget> attackTargets)
         {
             if (!IsValidRegionIndex(regionIndex)) {
                 return default;
@@ -568,11 +579,11 @@ namespace LouveSystems.K2.Lib
 
             int range = 1;
 
-            if (canExtendRange) {
-                EFactionFlag attackingFaction = GetRegionFaction(regionIndex);
-                if (attackingFaction.HasFlagSafe(EFactionFlag.Charge)) {
-                    range = 2;
-                }
+            EFactionFlag attackingFaction = GetRegionFaction(regionIndex);
+
+            if (allowedAttackTypes.HasFlagSafe(ERegionAttackType.Charge) && 
+                attackingFaction.HasFlagSafe(EFactionFlag.Charge)) {
+                range = 2;
             }
 
             Position position = Position(regionIndex);
@@ -588,23 +599,58 @@ namespace LouveSystems.K2.Lib
                     }
 
                     int neighborIndex = Index(neighborPosition);
+                    ERegionAttackType type = distance == 1 ? ERegionAttackType.Standard : ERegionAttackType.Charge;
 
                     if (!CanRealmAttackRegion(regions[regionIndex].ownerIndex, neighborIndex)) {
                         break;
                     }
 
-                    attackTargets.Add(neighborIndex);
+                    attackTargets.Add(new AttackTarget(neighborIndex, type));
+                }
+            }
+
+            if (allowedAttackTypes.HasFlagSafe(ERegionAttackType.Slithering) && 
+                attackingFaction.HasFlagSafe(EFactionFlag.SlitherAttacksBetweenRegions)) {
+
+                AxialPosition pos = new AxialPosition(Position(regionIndex));
+
+                for (int i = 0; i < AxialSlitherAttackVectors.Count; i++) {
+                    AxialPosition slitherTarget = pos + AxialSlitherAttackVectors[i];
+                    int slitherTargetIndex = Index(slitherTarget.ToPosition());
+                    if (IsValidRegionIndex(slitherTargetIndex) && CanRealmAttackRegion(regions[regionIndex].ownerIndex, slitherTargetIndex)) {
+
+                        bool isValidSlither = false;
+
+                        // Only if they have a neighbor in common
+                        var targetNeighbors = GetNeighboringRegions(slitherTargetIndex);
+                        var originNeighbors = GetNeighboringRegions(regionIndex);
+                        var commonNeighbors = targetNeighbors.Where(o => originNeighbors.Contains(o)).ToArray();
+                        for (int commonNeighborIndex = 0; commonNeighborIndex < commonNeighbors.Length; commonNeighborIndex++) {
+                            int neighborRegionIndex = commonNeighbors[commonNeighborIndex];
+
+                            // Only allow slithering if there's an enemy fort between origin and destination
+                            if (!regions[neighborRegionIndex].IsOwnedBy(regions[regionIndex].ownerIndex) 
+                                && regions[neighborRegionIndex].buildings != EBuilding.None) {
+                                isValidSlither = true;
+                                break;
+                            }
+                        }
+
+                        if (isValidSlither) {
+                            attackTargets.Add(new AttackTarget(slitherTargetIndex, ERegionAttackType.Slithering));
+                        }
+                    }
                 }
             }
 
             return attackTargets.Count > countBefore;
         }
 
-        public bool GetAttackTargetsForRegion(int regionIndex, bool canExtendAttack, out List<int> attackTargets)
+        public bool GetAttackTargetsForRegion(int regionIndex, ERegionAttackType allowedTypes, out List<AttackTarget> attackTargets)
         {
             attackTargets = new();
 
-            return GetAttackTargetsForRegionNoAlloc(regionIndex, canExtendAttack, in attackTargets);
+            return GetAttackTargetsForRegionNoAlloc(regionIndex, allowedTypes, in attackTargets);
         }
 
         public bool GetNaturalOwnerFromNeighbors(int regionIndex, ManagedRandom randomOptional, bool discardCurrentOwner, out byte newOwner, out bool wasCoinFlip, out bool isTotallySurrounded)

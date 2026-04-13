@@ -214,6 +214,16 @@ namespace LouveSystems.K2.Lib
             return alliance;
         }
 
+        public List<RegionAttackRegionTransform> GetAllianceAttacks(SessionPlayer containingPlayer)
+        {
+            var alliance = GetAlliance(containingPlayer);
+            List<RegionAttackRegionTransform> attacks = new List<RegionAttackRegionTransform>();
+            for (int i = 0; i < alliance.Count; i++) {
+                alliance[i].GetPlannedAttacks(attacks); 
+            }
+
+            return attacks;
+        }
         
         public bool GetOwnerOfRealm(int realmIndex, out SessionPlayer player, bool subjugator = true)
         {

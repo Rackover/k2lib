@@ -209,5 +209,20 @@ namespace LouveSystems.K2.Lib
 
             return clamped;
         }
+
+        public static ERegionAttackType ToAttackType(this EFactionFlag faction)
+        {
+            ERegionAttackType t = ERegionAttackType.Standard;
+
+            if (faction.HasFlagSafe(EFactionFlag.Charge)) {
+                t |= ERegionAttackType.Charge;
+            }
+
+            if (faction.HasFlagSafe(EFactionFlag.SlitherAttacksBetweenRegions)) {
+                t |= ERegionAttackType.Slithering;
+            }
+
+            return t;
+        }
     }
 }

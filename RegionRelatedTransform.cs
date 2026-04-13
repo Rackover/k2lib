@@ -34,11 +34,11 @@ namespace LouveSystems.K2.Lib
                     // OK
                     Logger.Trace($"... it can replay, so that's OK.");
                 }
-                else if (this is RegionAttackRegionTransform atk && atk.isExtendedAttack) {
-                    Logger.Trace($"... it's an extended attack, so we will allow it.");
+                else if (this is RegionAttackRegionTransform atk && atk.DecisionCost == 0) {
+                    Logger.Trace($"... it's a FREE attack, so we will allow it.");
                 }
-                else if (otherTransform is RegionAttackRegionTransform otherAtk && otherAtk.isExtendedAttack) {
-                    Logger.Trace($"... the previous played transform on this region was an extended attack ({otherAtk}) so we allow it.");
+                else if (otherTransform is RegionAttackRegionTransform otherAtk && otherAtk.DecisionCost == 0) {
+                    Logger.Trace($"... the previous played transform on this region was a FREE attack ({otherAtk}) so we allow it.");
                 }
                 else {
                     Logger.Trace($"... it's unacceptable! It has at least one other ongoing transform ({otherTransform}), it cannot replay ({session.CurrentGameState.world.Regions[actingRegionIndex]}) and this is not an extended attack!!");

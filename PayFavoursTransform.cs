@@ -12,9 +12,9 @@ namespace LouveSystems.K2.Lib
         public byte realmToFavour;
         public int silverPricePaid;
 
-        public PayFavoursTransform(byte realmToUpgrade, int silverPaidPrice, byte ownerPlayer) : base(ownerPlayer)
+        public PayFavoursTransform(byte realmToFavour, int silverPaidPrice, byte ownerPlayer) : base(ownerPlayer)
         {
-            this.realmToFavour = realmToUpgrade;
+            this.realmToFavour = realmToFavour;
             this.silverPricePaid = silverPaidPrice;
         }
 

@@ -518,7 +518,7 @@ namespace LouveSystems.K2.Lib
                 var sortedOrders = attackOrders
                     .OrderBy(o => attacksPerRealm[regionOwner[o.AttackingRegionIndex]])
                     .OrderBy(o => regionOwner[o.AttackingRegionIndex])
-                    .ThenBy(o => o.isExtendedAttack)
+                    .ThenBy(o => o.attackType)
                     .ToArray(); // Extended attacks at the end
 
                 attackOrders.Clear();
@@ -570,14 +570,17 @@ namespace LouveSystems.K2.Lib
                 effect.otherMajorityAttackersWhoLostCoinFlip = otherCoinFlippers.ToArray();
 
                 // Extended attack is a prowess
-                if (transform.isExtendedAttack) {
+                if (transform.attackType.HasFlagSafe(ERegionAttackType.Charge)) {
                     effect.factionHighlights |= EFactionFlag.Charge;
+                }
+                if (transform.attackType.HasFlagSafe(ERegionAttackType.Slithering)) {
+                    effect.factionHighlights |= EFactionFlag.SlitherAttacksBetweenRegions;
                 }
 
                 if (target.CannotBeTaken(rules, attackingFaction)) {
                     // It's a fail
                 }
-                else if (transform.isExtendedAttack &&
+                else if (transform.attackType == ERegionAttackType.Charge &&
                     effects.Find((o) =>
                         o is ITransformEffect.ConquestEffect conquest &&
                         conquest.Success &&
@@ -666,7 +669,7 @@ namespace LouveSystems.K2.Lib
 
                 List<RegionAttackRegionTransform> attacksOnSameRegion;
 
-                if (attack.isExtendedAttack) {
+                if (attack.attackType == ERegionAttackType.Charge) {
                     attacksOnSameRegion = new List<RegionAttackRegionTransform>() { attack };
                     remainingAttacks.RemoveAt(0);
                 }
@@ -735,7 +738,7 @@ namespace LouveSystems.K2.Lib
             attacks = attacks
                     .OrderBy((o) =>
                     {
-                        return o.isExtendedAttack; // Extended attacks at the very last
+                        return o.attackType; // Extended attacks at the very last
                     })
                     .ThenBy((o) =>
                     {

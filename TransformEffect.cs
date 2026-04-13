@@ -74,7 +74,7 @@ namespace LouveSystems.K2.Lib
                     return false;
                 }
 
-                return this.factionHighlights.HasFlagSafe(flag);
+                return flag.HasFlagSafe(this.factionHighlights);
             }
         }
 

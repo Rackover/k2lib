@@ -8,18 +8,18 @@ namespace LouveSystems.K2.Lib
     {
         public int AttackingRegionIndex => actingRegionIndex;
 
-        public override int DecisionCost => isExtendedAttack ? 0 : 1;
+        public override int DecisionCost => attackType != ERegionAttackType.Charge ? 1 : 0;
 
         public int targetRegionIndex;
-
-        public bool isExtendedAttack;
+    
+        public ERegionAttackType attackType;
 
         public RegionAttackRegionTransform() : base() { }
 
-        public RegionAttackRegionTransform(int attackingRegionIndex, int targetRegionIndex, bool isExtendedAttack, byte owningRealm) : base(attackingRegionIndex, owningRealm)
+        public RegionAttackRegionTransform(int attackingRegionIndex, int targetRegionIndex, ERegionAttackType attackType, byte owningRealm) : base(attackingRegionIndex, owningRealm)
         {
             this.targetRegionIndex = targetRegionIndex;
-            this.isExtendedAttack = isExtendedAttack;
+            this.attackType = attackType;
         }
 
         public override ETransformKind Kind => ETransformKind.RegionAttack;
@@ -28,19 +28,19 @@ namespace LouveSystems.K2.Lib
         {
             base.ReadInternal(from);
             targetRegionIndex = from.ReadInt32();
-            isExtendedAttack = from.ReadBoolean();
+            attackType = (ERegionAttackType)from.ReadByte();
         }
 
         protected override void WriteInternal(BinaryWriter into)
         {
             base.WriteInternal(into);
             into.Write(targetRegionIndex);
-            into.Write(isExtendedAttack);
+            into.Write((byte)attackType);
         }
 
         public override string ToString()
         {
-            return $"Region attack {AttackingRegionIndex} => {targetRegionIndex}";
+            return $"Region attack {attackType} {AttackingRegionIndex} => {targetRegionIndex}";
         }
     }
 }

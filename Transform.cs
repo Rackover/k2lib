@@ -22,6 +22,8 @@ namespace LouveSystems.K2.Lib
 
         public int UniqueID => uniqueId;
 
+        public bool IsFree => DecisionCost <= 0;
+
         public virtual int DecisionCost => 1;
 
         public virtual int SilverCost => 0;
