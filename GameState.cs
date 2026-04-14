@@ -29,9 +29,8 @@ namespace LouveSystems.K2.Lib
             world = new World(party, parameters);
             voting = new Voting(parameters);
             statistics = new Statistics();
-            statistics.realms = new Statistics.RealmStatistics[world.Realms.Count];
-            statistics.regions = new Statistics.RegionStatistics[world.Regions.Count];
 
+            InitializeStatistics();
             SuscribeToStatisticsEvents();
         }
 
@@ -53,17 +52,63 @@ namespace LouveSystems.K2.Lib
             world.OnSilverTreasuryGained += World_OnSilverTreasuryGained;
             world.OnSilverTreasuryLost += World_OnSilverTreasuryLost;
             world.OnRegionBuilt += World_OnRegionBuilt;
+            world.OnRegionDestroyed += World_OnRegionDestroyed;
             world.OnRegionConquest += World_OnRegionConquest;
             world.OnRegionStarved += World_OnRegionStarved;
         }
 
-        private void World_OnRegionStarved(int regionIndex)
+        private void World_OnRegionDestroyed(int regionIndex, EBuilding building, byte? destructor)
         {
+            if (destructor.HasValue) {
+                statistics.realms[destructor.Value].buildingsDestroyed++;
+            }
+        }
+
+        private void InitializeStatistics()
+        {
+            statistics.realms = new Statistics.RealmStatistics[world.Realms.Count];
+            statistics.regions = new Statistics.RegionStatistics[world.Regions.Count];
+
+            List<int> territoryCache = new List<int>();
+            for (byte realmIndex = 0; realmIndex < statistics.realms.Length; realmIndex++) {
+                territoryCache.Clear();
+                world.GetTerritoryOfRealm(realmIndex, territoryCache);
+
+                for (int territoryRegion = 0; territoryRegion < territoryCache.Count; territoryRegion++) {
+                    int regionIndex = territoryCache[territoryRegion];
+                    World_OnRegionConquest(regionIndex, realmIndex, default);
+
+                    if (world.Regions[regionIndex].buildings != EBuilding.None) {
+                        World_OnRegionBuilt(regionIndex, world.Regions[regionIndex].buildings);
+                    }
+                }
+
+                statistics.realms[realmIndex].minRiches = (ushort)world.GetSilverTreasury(realmIndex);
+                statistics.realms[realmIndex].minTerritorySize = (ushort)territoryCache.Count;
+            }
+        }
+
+        private void World_OnRegionStarved(int regionIndex, byte? newOwner, byte? previousOwner)
+        {
+            if (newOwner.HasValue) {
+                statistics.realms[newOwner.Value].regionsGainedFromAttrition++;
+            }
+
+            if (previousOwner.HasValue) {
+                statistics.realms[previousOwner.Value].regionsLostToAttrition++;
+            }
+
             statistics.regions[regionIndex].starvations++;
         }
 
-        private void World_OnRegionConquest(int regionIndex, byte newOwner)
+        private void World_OnRegionConquest(int regionIndex, byte newOwner, byte? previousOwner)
         {
+            statistics.realms[newOwner].regionsGainedFromConquest++;
+
+            if (previousOwner.HasValue) {
+                statistics.realms[previousOwner.Value].regionsLostToConquest++;
+            }
+
             statistics.regions[regionIndex].conquests++;
             statistics.regions[regionIndex].conquestsPerRealm ??= new Dictionary<byte, ushort>();
             statistics.regions[regionIndex].conquestsPerRealm.TryAdd(newOwner, 0);
@@ -72,6 +117,10 @@ namespace LouveSystems.K2.Lib
 
         private void World_OnRegionBuilt(int regionIndex, EBuilding building)
         {
+            if (world.Regions[regionIndex].GetOwner(out byte owner)) {
+                statistics.realms[owner].buildingsConstructed++;
+            }
+
             statistics.regions[regionIndex].buildingsConstructed++;
         }
 
@@ -285,9 +334,7 @@ namespace LouveSystems.K2.Lib
 
         public GameState Duplicate()
         {
-            GameState gameState = this;
-            gameState.world = new World(world);
-
+            GameState gameState = new (this);
             return gameState;
         }
 

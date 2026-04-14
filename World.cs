@@ -10,12 +10,14 @@ namespace LouveSystems.K2.Lib
     {
         private const byte OPTIMAL_REALM_SIZE = 1;
 
-        internal delegate void RegionEventDelegate(int regionIndex);
-        internal delegate void RegionConquestDelegate(int regionIndex, byte newOwner);
+        internal delegate void RegionStarvationDelegate(int regionIndex, byte? newOwner, byte? previousOwner);
+        internal delegate void RegionConquestDelegate(int regionIndex, byte newOwner, byte? previousOwner);
         internal delegate void RegionBuiltDelegate(int regionIndex, EBuilding building);
-        internal event RegionEventDelegate OnRegionStarved;
+        internal delegate void RegionDestroyedDelegate(int regionIndex, EBuilding building, byte? destructor);
+        internal event RegionStarvationDelegate OnRegionStarved;
         internal event RegionConquestDelegate OnRegionConquest;
         internal event RegionBuiltDelegate OnRegionBuilt;
+        internal event RegionDestroyedDelegate OnRegionDestroyed;
 
         internal delegate void SilverTreasuryChangedDelegate(byte realmIndex, uint amount);
         internal event SilverTreasuryChangedDelegate OnSilverTreasuryGained;
@@ -196,6 +198,8 @@ namespace LouveSystems.K2.Lib
 
         public void StarveRegion(int regionIndex, bool hasNewOwner, byte newOwningRealm)
         {
+            bool hadOwner = regions[regionIndex].GetOwner(out byte previousOwner);
+
             if (hasNewOwner) {
                 bool keepBuilding = true;
                 if (GetRealmFaction(newOwningRealm).HasFlagSafe(EFactionFlag.ConquestBuilding) ||
@@ -212,25 +216,37 @@ namespace LouveSystems.K2.Lib
                 regions[regionIndex].isOwned = false;
             }
 
-            OnRegionStarved?.Invoke(regionIndex);
+            OnRegionStarved?.Invoke(
+                regionIndex,
+                hasNewOwner ? newOwningRealm : default, 
+                hadOwner ? previousOwner : default
+            );
         }
 
         public void ConquestRegion(int regionIndex, byte newOwningRealm)
         {
+            bool hadOwner = regions[regionIndex].GetOwner(out byte previousOwner);
+
             bool keepBuilding = GetRealmFaction(newOwningRealm).HasFlagSafe(EFactionFlag.ConquestBuilding);
             TakeOwnershipOfRegion(regionIndex, newOwningRealm, keepBuilding);
 
-            OnRegionConquest?.Invoke(regionIndex, newOwningRealm);
+            OnRegionConquest?.Invoke(
+                regionIndex,
+                newOwningRealm,
+                hadOwner ? previousOwner : default
+            );
         }
 
         private void TakeOwnershipOfRegion(int regionIndex, byte newOwningRealm, bool keepBuilding)
         {
+            if (!keepBuilding && regions[regionIndex].buildings != EBuilding.None) {
+                OnRegionDestroyed?.Invoke(regionIndex, regions[regionIndex].buildings, newOwningRealm);
+                regions[regionIndex].buildings = EBuilding.None;
+            }
+
             regions[regionIndex].ownerIndex = newOwningRealm;
             regions[regionIndex].isOwned = true;
 
-            if (!keepBuilding) {
-                regions[regionIndex].buildings = EBuilding.None;
-            }
         }
 
         public void ConstructBuilding(int regionIndex, EBuilding building)

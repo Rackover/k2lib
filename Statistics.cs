@@ -156,7 +156,7 @@ namespace LouveSystems.K2.Lib
                     var copy = o;
 
                     // copy dictionary
-                    copy.buildingKindsConstructed = o.buildingKindsConstructed.ToDictionary(kv => kv.Key, kv => kv.Value);
+                    copy.buildingKindsConstructed = o.buildingKindsConstructed?.ToDictionary(kv => kv.Key, kv => kv.Value);
 
                     return copy;
                 })
@@ -168,7 +168,7 @@ namespace LouveSystems.K2.Lib
                     var copy = o;
 
                     // copy dictionary
-                    copy.conquestsPerRealm = o.conquestsPerRealm.ToDictionary(kv => kv.Key, kv => kv.Value);
+                    copy.conquestsPerRealm = o.conquestsPerRealm?.ToDictionary(kv => kv.Key, kv => kv.Value);
 
                     return copy;
                 })
