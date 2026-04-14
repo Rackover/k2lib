@@ -247,8 +247,6 @@ namespace LouveSystems.K2.Lib
         public bool isSubjugated;
         public byte subjugatedBy;
 
-        public int totalSpentStatistics;
-
         private ExtremelyNormalConstantSizeList subjugatingAttacksReceived;
 
         public int GetHash()

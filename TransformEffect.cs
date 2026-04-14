@@ -30,24 +30,12 @@ namespace LouveSystems.K2.Lib
             public void Apply(in GameState previous, ref GameState next)
             {
                 if (Success) {
-
-                    next.world.Modify(out Region[] regions, out Realm[] realms);
-
-                    if (regions[regionIndex].buildings == EBuilding.Capital) {
+                    if (previous.world.Regions[regionIndex].buildings == EBuilding.Capital) {
                         // Do not modify
                         return;
                     }
 
-                    regions[regionIndex].ownerIndex = newOwningRealm;
-                    regions[regionIndex].isOwned = true;
-
-
-                    if (previous.world.GetRealmFaction(newOwningRealm).HasFlagSafe(EFactionFlag.ConquestBuilding)) {
-                        // Keep building
-                    }
-                    else {
-                        regions[regionIndex].buildings = EBuilding.None;
-                    }
+                    next.world.ConquestRegion(regionIndex, newOwningRealm);
                 }
             }
 
@@ -88,20 +76,7 @@ namespace LouveSystems.K2.Lib
 
             public void Apply(in GameState previous, ref GameState next)
             {
-                next.world.Modify(out Region[] regions, out Realm[] realms);
-                regions[regionIndex].isOwned = hasNewOwner;
-
-                if (previous.world.GetRealmFaction(newOwningRealm).HasFlagSafe(EFactionFlag.ConquestBuilding) ||
-                    !previous.rules.goTakeDestroysBuildings) {
-                    // Keep building
-                }
-                else {
-                    regions[regionIndex].buildings = EBuilding.None;
-                }
-
-                if (hasNewOwner) {
-                    regions[regionIndex].ownerIndex = newOwningRealm;
-                }
+                next.world.StarveRegion(regionIndex, hasNewOwner, newOwningRealm);
             }
         }
 
@@ -147,10 +122,7 @@ namespace LouveSystems.K2.Lib
 
                 if (next.world.IsActionableRegion(forOwner, regionIndex)) {
 
-                    next.world.Modify(out Region[] regions, out Realm[] realms);
-
-                    regions[regionIndex].buildings |= building;
-
+                    next.world.ConstructBuilding(regionIndex, building);
                     next.world.AddSilverTreasury(regionOwner, -silverPricePaid);
                 }
             }
@@ -168,9 +140,7 @@ namespace LouveSystems.K2.Lib
 
             public void Apply(in GameState previous, ref GameState next)
             {
-                next.world.Modify(out Region[] regions, out Realm[] realms);
-
-                realms[realmIndex].isFavoured = true;
+                next.world.SetRealmFavoured(realmIndex, true);
                 next.world.AddSilverTreasury(realmIndex, -silverPricePaid);
             }
         }
@@ -182,8 +152,7 @@ namespace LouveSystems.K2.Lib
 
             public void Apply(in GameState previous, ref GameState next)
             {
-                next.world.Modify(out Region[] regions, out Realm[] realms);
-                realms[realmIndex].availableDecisions = realms[realmIndex].availableDecisions + 1;
+                next.world.IncreaseMaxDecisions(realmIndex);
                 next.world.AddSilverTreasury(realmIndex, -silverPricePaid);
             }
         }
@@ -231,8 +200,7 @@ namespace LouveSystems.K2.Lib
                     // Do nothing
                 }
                 else {
-                    next.world.Modify(out Region[] regions, out Realm[] realms);
-                    realms[targetRealmIndex].RemoveSubjugatingAttackFrom(attackingRealmIndex);
+                    next.world.CancelPartialSubjugation(attackingRealmIndex, targetRealmIndex);
                 }
 
                 attacksAfter = next.world.Realms[targetRealmIndex].GetSubjugatingAttacksReceived(attackingRealmIndex);

@@ -10,7 +10,7 @@ namespace LouveSystems.K2.Lib
 
     public struct GameState : IBinarySerializable
     {
-        const byte VERSION = 1;
+        const byte VERSION = 5;
 
         public int daysPassed;
         public int councilsPassed;
@@ -18,6 +18,7 @@ namespace LouveSystems.K2.Lib
         public World world;
         public Voting voting;
         public GameRules rules;
+        public Statistics statistics; // Incremental
 
         public GameState(PartySessionInitializationParameters party, GameRules parameters)
         {
@@ -27,6 +28,11 @@ namespace LouveSystems.K2.Lib
             daysRemainingBeforeNextCouncil = parameters.turnsBetweenVotes;
             world = new World(party, parameters);
             voting = new Voting(parameters);
+            statistics = new Statistics();
+            statistics.realms = new Statistics.RealmStatistics[world.Realms.Count];
+            statistics.regions = new Statistics.RegionStatistics[world.Regions.Count];
+
+            SuscribeToStatisticsEvents();
         }
 
         public GameState(in GameState other)
@@ -37,6 +43,46 @@ namespace LouveSystems.K2.Lib
             daysRemainingBeforeNextCouncil = other.daysRemainingBeforeNextCouncil;
             world = new World(other.world);
             voting = new Voting(other.voting);
+            statistics = new Statistics(other.statistics);
+
+            SuscribeToStatisticsEvents();
+        }
+
+        private void SuscribeToStatisticsEvents()
+        {
+            world.OnSilverTreasuryGained += World_OnSilverTreasuryGained;
+            world.OnSilverTreasuryLost += World_OnSilverTreasuryLost;
+            world.OnRegionBuilt += World_OnRegionBuilt;
+            world.OnRegionConquest += World_OnRegionConquest;
+            world.OnRegionStarved += World_OnRegionStarved;
+        }
+
+        private void World_OnRegionStarved(int regionIndex)
+        {
+            statistics.regions[regionIndex].starvations++;
+        }
+
+        private void World_OnRegionConquest(int regionIndex, byte newOwner)
+        {
+            statistics.regions[regionIndex].conquests++;
+            statistics.regions[regionIndex].conquestsPerRealm ??= new Dictionary<byte, ushort>();
+            statistics.regions[regionIndex].conquestsPerRealm.TryAdd(newOwner, 0);
+            statistics.regions[regionIndex].conquestsPerRealm[newOwner]++;
+        }
+
+        private void World_OnRegionBuilt(int regionIndex, EBuilding building)
+        {
+            statistics.regions[regionIndex].buildingsConstructed++;
+        }
+
+        private void World_OnSilverTreasuryLost(byte realmIndex, uint amount)
+        {
+            statistics.realms[realmIndex].silverSpent += amount;
+        }
+
+        private void World_OnSilverTreasuryGained(byte realmIndex, uint amount)
+        {
+            statistics.realms[realmIndex].silverGained += amount;
         }
 
         public void ComputeEffects(ManagedRandom random, IReadOnlyList<Transform> transformsUnordered, out ITransformEffect[] effects)
@@ -768,6 +814,7 @@ namespace LouveSystems.K2.Lib
             into.Write(daysRemainingBeforeNextCouncil);
             into.Write(world);
             into.Write(voting);
+            into.Write(statistics);
         }
 
         public void Read(BinaryReader from)
@@ -783,6 +830,9 @@ namespace LouveSystems.K2.Lib
 
             voting = new Voting(rules);
             voting.Read(version, from);
+
+            statistics = new Statistics();
+            statistics.Read(version, from);
         }
     }
 }

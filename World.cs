@@ -10,6 +10,17 @@ namespace LouveSystems.K2.Lib
     {
         private const byte OPTIMAL_REALM_SIZE = 1;
 
+        internal delegate void RegionEventDelegate(int regionIndex);
+        internal delegate void RegionConquestDelegate(int regionIndex, byte newOwner);
+        internal delegate void RegionBuiltDelegate(int regionIndex, EBuilding building);
+        internal event RegionEventDelegate OnRegionStarved;
+        internal event RegionConquestDelegate OnRegionConquest;
+        internal event RegionBuiltDelegate OnRegionBuilt;
+
+        internal delegate void SilverTreasuryChangedDelegate(byte realmIndex, uint amount);
+        internal event SilverTreasuryChangedDelegate OnSilverTreasuryGained;
+        internal event SilverTreasuryChangedDelegate OnSilverTreasuryLost;
+
         private struct AxialPosition
         {
             public int q;
@@ -183,6 +194,62 @@ namespace LouveSystems.K2.Lib
             realms = this.realms;
         }
 
+        public void StarveRegion(int regionIndex, bool hasNewOwner, byte newOwningRealm)
+        {
+            if (hasNewOwner) {
+                bool keepBuilding = true;
+                if (GetRealmFaction(newOwningRealm).HasFlagSafe(EFactionFlag.ConquestBuilding) ||
+                    !rules.goTakeDestroysBuildings) {
+                    // Keep building
+                }
+                else {
+                    keepBuilding = false;
+                }
+
+                TakeOwnershipOfRegion(regionIndex, newOwningRealm, keepBuilding);
+            }
+            else {
+                regions[regionIndex].isOwned = false;
+            }
+
+            OnRegionStarved?.Invoke(regionIndex);
+        }
+
+        public void ConquestRegion(int regionIndex, byte newOwningRealm)
+        {
+            bool keepBuilding = GetRealmFaction(newOwningRealm).HasFlagSafe(EFactionFlag.ConquestBuilding);
+            TakeOwnershipOfRegion(regionIndex, newOwningRealm, keepBuilding);
+
+            OnRegionConquest?.Invoke(regionIndex, newOwningRealm);
+        }
+
+        private void TakeOwnershipOfRegion(int regionIndex, byte newOwningRealm, bool keepBuilding)
+        {
+            regions[regionIndex].ownerIndex = newOwningRealm;
+            regions[regionIndex].isOwned = true;
+
+            if (!keepBuilding) {
+                regions[regionIndex].buildings = EBuilding.None;
+            }
+        }
+
+        public void ConstructBuilding(int regionIndex, EBuilding building)
+        {
+            this.regions[regionIndex].buildings |= building;
+
+            OnRegionBuilt?.Invoke(regionIndex, building);
+        }
+
+        public void SetRealmFavoured(byte realmIndex, bool favoured)
+        {
+            this.realms[realmIndex].isFavoured = favoured;
+        }
+
+        public void CancelPartialSubjugation(byte attackingRealmIndex, byte targetRealmIndex)
+        {
+            realms[targetRealmIndex].RemoveSubjugatingAttackFrom(attackingRealmIndex);
+        }
+
         public bool AttemptSubjugation(byte attackingRealmIndex, byte targetRealmIndex)
         {
             if (IsValidRealmIndex(attackingRealmIndex) && IsValidRealmIndex(targetRealmIndex)) {
@@ -289,6 +356,11 @@ namespace LouveSystems.K2.Lib
             return false;
         }
 
+        public void IncreaseMaxDecisions(byte realmIndex, int byAmount=1)
+        {
+            realms[realmIndex].availableDecisions = realms[realmIndex].availableDecisions + byAmount;
+        }
+
         public void AddSilverTreasury(byte realmIndex, int amount)
         {
             int treasury = GetSilverTreasury(realmIndex);
@@ -306,8 +378,16 @@ namespace LouveSystems.K2.Lib
                 target = subjugator;
             }
 
-            if (treasury < realms[target].silverTreasury) {
-                realms[target].totalSpentStatistics += realms[target].silverTreasury - treasury;
+            // Statistics
+             {
+                int delta = realms[target].silverTreasury - treasury;
+
+                if (delta < 0) {
+                    OnSilverTreasuryLost?.Invoke(target, (uint)(-delta));
+                }
+                else if (delta > 0) {
+                    OnSilverTreasuryGained?.Invoke(target, (uint)(delta));
+                }
             }
 
             realms[target].silverTreasury = treasury;

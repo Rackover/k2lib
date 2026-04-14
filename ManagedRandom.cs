@@ -74,6 +74,10 @@ namespace LouveSystems.K2.Lib
         {
             byte version = from.ReadByte();
             Position = from.ReadInt32();
+
+            for (int i = 0; i < Rolls.Length; i++) {
+                Rolls[i] = from.ReadInt32();
+            }
         }
 
         public ManagedRandom Duplicate()

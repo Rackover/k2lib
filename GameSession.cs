@@ -5,10 +5,64 @@ namespace LouveSystems.K2.Lib
     using System.Collections;
     using System.Collections.Generic;
 
+  
     public class GameSession
     {
         public event Action<Transform> OnTransformAdded;
 
+        // This tracks _some_ statistics
+        private class StatisticsTracker
+        {
+            public void RefreshRealmMinMax(in GameState state)
+            {
+                for (byte i = 0; i < state.statistics.realms.Length; i++) {
+                    RefreshRealmMinMax(state, i);
+                }
+            }
+
+            private void RefreshRealmMinMax(in GameState state, byte realmIndex)
+            {
+                List<int> regions = new List<int>();
+                state.world.GetTerritoryOfRealm(realmIndex, regions);
+
+                state.statistics.realms[realmIndex].minTerritorySize = Math.Min((ushort)regions.Count, state.statistics.realms[realmIndex].minTerritorySize);
+                state.statistics.realms[realmIndex].maxTerritorySize = Math.Max((ushort)regions.Count, state.statistics.realms[realmIndex].maxTerritorySize);
+
+                state.statistics.realms[realmIndex].minRiches = Math.Min(state.statistics.realms[realmIndex].minRiches, (ushort)state.world.Realms[realmIndex].silverTreasury);
+                state.statistics.realms[realmIndex].maxRiches = Math.Max(state.statistics.realms[realmIndex].maxRiches, (ushort)state.world.Realms[realmIndex].silverTreasury);
+
+                state.statistics.realms[realmIndex].maxAdministration = Math.Max(state.statistics.realms[realmIndex].maxAdministration, (ushort)state.world.Realms[realmIndex].availableDecisions);
+
+                int buildingsCount = 0;
+                for (int regionIndex = 0; regionIndex < state.world.Regions.Count; regionIndex++) {
+                    if (state.world.Regions[regionIndex].buildings != EBuilding.None) {
+                        buildingsCount++;
+                    }
+                }
+
+                state.statistics.realms[realmIndex].maxBuildings = Math.Max(state.statistics.realms[realmIndex].maxBuildings, (ushort)buildingsCount);
+
+                if (state.voting.Result.scores != null) {
+                    int myVotes = state.voting.Result.GetScoreOfRealm(realmIndex).totalVotes;
+                    state.statistics.realms[realmIndex].maxVotesInSingleCouncil = Math.Max(state.statistics.realms[realmIndex].maxVotesInSingleCouncil, (ushort)myVotes);
+                }
+            }
+
+            public void AddVotes(in GameState state)
+            {
+                for (byte i = 0; i < state.statistics.realms.Length; i++) {
+                    AddVotes(state, i);
+                }
+            }
+
+            private void AddVotes(in GameState state, byte realmIndex)
+            {
+                if (state.voting.Result.scores != null) {
+                    int myVotes = state.voting.Result.GetScoreOfRealm(realmIndex).totalVotes;
+                    state.statistics.realms[realmIndex].tally += (ushort)myVotes;
+                }
+            }
+        }
 
         public GameRules Rules => parameters;
 
@@ -16,6 +70,7 @@ namespace LouveSystems.K2.Lib
 
         public IReadOnlyList<Transform> AwaitingTransforms => awaitingTransforms;
 
+        // Key is player id
         public IReadOnlyDictionary<byte, SessionPlayer> SessionPlayers => sessionPlayers;
 
         public ManagedRandom ComputersRandom { get; }
@@ -27,9 +82,10 @@ namespace LouveSystems.K2.Lib
         private readonly GameRules parameters;
 
         private readonly Dictionary<byte, SessionPlayer> sessionPlayers = new Dictionary<byte, SessionPlayer>();
+        
+        private readonly StatisticsTracker statisticsRecorder = new StatisticsTracker();
 
         protected GameState gameState;
-
 
         public GameSession(PartySessionInitializationParameters party, GameRules parameters, int seed)
         {
@@ -145,8 +201,6 @@ namespace LouveSystems.K2.Lib
             ResolveTransformsToEffects(out ITransformEffect[] orderedEffects);
             GameState newGameState = gameState.Duplicate();
             gameState.ApplyEffects(orderedEffects, ref newGameState);
-
-            newGameState.world.Modify(out Region[] regions, out Realm[] realms);
 
             // Resolve revenue
             for (int regionIndex = 0; regionIndex < newGameState.world.Regions.Count; regionIndex++) {
@@ -269,11 +323,14 @@ namespace LouveSystems.K2.Lib
             awaitingTransforms.Clear();
 
         }
+
         protected void AdvanceDay()
         {
             gameState.daysRemainingBeforeNextCouncil--;
 
             gameState.daysPassed++;
+
+            statisticsRecorder.RefreshRealmMinMax(gameState);
         }
 
         protected void AdvanceAfterCouncil()
@@ -283,10 +340,12 @@ namespace LouveSystems.K2.Lib
             gameState.councilsPassed++;
 
             // Reset favours
-            for (int realmIndex = 0; realmIndex < gameState.world.Realms.Count; realmIndex++) {
-                gameState.world.Modify(out Region[] regions, out Realm[] realms);
-                realms[realmIndex].isFavoured = false;
+            for (byte realmIndex = 0; realmIndex < gameState.world.Realms.Count; realmIndex++) {
+                gameState.world.SetRealmFavoured(realmIndex, false); 
             }
+
+            statisticsRecorder.AddVotes(gameState);
+            statisticsRecorder.RefreshRealmMinMax(gameState);
         }
 
 
