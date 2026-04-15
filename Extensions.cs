@@ -176,12 +176,8 @@ namespace LouveSystems.K2.Lib
 
         public static byte EnsurePositiveEqualOrUnder(this byte value, byte ceiling)
         {
-            if (value < 0) {
-                return 0;
-            }
-
-            if (value >= ceiling) {
-                return (byte)(ceiling - 1);
+            if (value > ceiling) { // means it has to be > 0 too
+                return ceiling;
             }
 
             return value;
@@ -194,7 +190,7 @@ namespace LouveSystems.K2.Lib
             }
 
             if (value >= ceiling) {
-                return ceiling - 1;
+                return ceiling;
             }
 
             return value;
