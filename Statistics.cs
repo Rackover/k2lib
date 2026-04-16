@@ -29,6 +29,15 @@ namespace LouveSystems.K2.Lib
 
             public Dictionary<EBuilding, ushort> buildingKindsConstructed;
 
+            public void NotifyBuildingConstructed(EBuilding building)
+            {
+                buildingKindsConstructed ??= new Dictionary<EBuilding, ushort>();
+                buildingKindsConstructed.TryAdd(building, 0);
+                buildingKindsConstructed[building]++;
+
+                buildingsConstructed++;
+            }
+
             public void Write(BinaryWriter into)
             {
                 into.Write(regionsLostToAttrition);

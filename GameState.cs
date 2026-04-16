@@ -118,7 +118,7 @@ namespace LouveSystems.K2.Lib
         private void World_OnRegionBuilt(int regionIndex, EBuilding building)
         {
             if (world.Regions[regionIndex].GetOwner(out byte owner)) {
-                statistics.realms[owner].buildingsConstructed++;
+                statistics.realms[owner].NotifyBuildingConstructed(building);
             }
 
             statistics.regions[regionIndex].buildingsConstructed++;
