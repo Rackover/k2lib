@@ -726,7 +726,9 @@ namespace LouveSystems.K2.Lib
 
                             // Only allow slithering if there's an enemy fort between origin and destination
                             if (!regions[neighborRegionIndex].IsOwnedBy(regions[regionIndex].ownerIndex) 
-                                && regions[neighborRegionIndex].buildings != EBuilding.None) {
+                                && regions[neighborRegionIndex].buildings != EBuilding.None
+                                && !IsCouncilRegion(neighborRegionIndex)
+                            ) {
                                 isValidSlither = true;
                                 break;
                             }

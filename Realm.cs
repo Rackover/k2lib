@@ -251,13 +251,27 @@ namespace LouveSystems.K2.Lib
 
         public int GetHash()
         {
-            return Extensions.Hash(
+            Logger.Trace($"Obtaining hash of {this}...");
+            Logger.Trace($"-> Hash of {nameof(silverTreasury)} is {Extensions.Hash(silverTreasury):X8}");
+            Logger.Trace($"-> Hash of {nameof(availableDecisions)} is {Extensions.Hash(availableDecisions):X8}");
+            Logger.Trace($"-> Hash of {nameof(isFavoured)} is {Extensions.Hash((isFavoured ? 1 : 0)):X8}");
+            Logger.Trace($"-> Hash of {nameof(factionIndex)} is {Extensions.Hash(factionIndex):X8}");
+            Logger.Trace($"-> Hash of {nameof(subjugatingAttacksReceived)} is...");
+            for (int i = 0; i < subjugatingAttacksReceived.Count; i++) {
+                Logger.Trace($"---> Hash of {nameof(subjugatingAttacksReceived)}[{i}] is {Extensions.Hash(subjugatingAttacksReceived[i])}");
+            }
+
+
+            int hash = Extensions.Hash(
                 silverTreasury,
                 availableDecisions,
                 isFavoured ? 1 : 0,
                 factionIndex,
                 Extensions.Hash(subjugatingAttacksReceived.Select(o=> Extensions.Hash(o)).ToArray())
             );
+
+            Logger.Trace($"-> Resulting hash is {hash}");
+            return hash;
         }
 
         public bool IsUnderThreatOfSubjugation(out byte[] potentialSubjugators)
