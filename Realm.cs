@@ -267,10 +267,10 @@ namespace LouveSystems.K2.Lib
                 availableDecisions,
                 isFavoured ? 1 : 0,
                 factionIndex,
-                Extensions.Hash(subjugatingAttacksReceived.Select(o=> Extensions.Hash(o)).ToArray())
+                Extensions.Hash(subjugatingAttacksReceived.ToArray())
             );
 
-            Logger.Trace($"-> Resulting hash is {hash}");
+            Logger.Trace($"-> Resulting hash is {hash:X8}");
             return hash;
         }
 
