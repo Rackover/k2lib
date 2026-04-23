@@ -15,7 +15,8 @@ namespace LouveSystems.K2.Lib
             RegionAttack,
             RegionBuild,
             ImproveAdministration,
-            PayFavours
+            PayFavours,
+            DoNothing
         }
 
         public byte owningRealm;
@@ -48,6 +49,9 @@ namespace LouveSystems.K2.Lib
 
                 case ETransformKind.RegionBuild:
                     return new RegionBuildTransform();
+
+                case ETransformKind.DoNothing:
+                    return new DoNothingTransform();
             }
 
             throw new System.Exception($"Unknown {kind}");

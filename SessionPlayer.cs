@@ -380,6 +380,16 @@ namespace LouveSystems.K2.Lib
             o is AdminUpgradeTransform adminUpgrade && adminUpgrade.realmToUpgrade == RealmIndex) >= 0;
         }
 
+        public void WasteAction()
+        {
+            if (AnyDecisionsRemaining()) {
+                Act(new DoNothingTransform());
+            }
+            else {
+                Logger.Warn($"Cannot {nameof(WasteAction)} for {RealmIndex} - no action remaining!");
+            }
+        }
+
         public void PayForFavours()
         {
             if (CanPayForFavours()) {
