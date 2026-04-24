@@ -105,7 +105,7 @@ namespace LouveSystems.K2.Lib
 
         public override string ToString()
         {
-            return $"Region {(inert ? "inert " : string.Empty)}with {buildings} ({(isOwned ? "free of ownership" : $"owned by realm {ownerIndex}")})";
+            return $"Region {(inert ? "inert " : string.Empty)}with {buildings} ({(isOwned ? $"owned by realm {ownerIndex}" : "free of ownership")})";
         }
     }
 }

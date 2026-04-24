@@ -16,6 +16,8 @@ namespace LouveSystems.K2.Lib
         SeeEnemyPlannedConstructions = 1 << 7,
         Subjugate = 1 << 8,
         FirstBuildingIsFree = 1 << 9,
-        SlitherAttacksBetweenRegions = 1 << 10
+        SlitherAttacksBetweenRegions = 1 << 10,
+        SelfAttack = 1 << 11,
+        CanBuildDecoys = 1 << 12
     }
 }
