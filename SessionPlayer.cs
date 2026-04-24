@@ -309,6 +309,17 @@ namespace LouveSystems.K2.Lib
             return gameSession.IsFavoured(RealmIndex);
         }
 
+        public bool IsNextBuildingFree()
+        {
+            if (Faction.HasFlagSafe(EFactionFlag.FirstBuildingIsFree)) {
+                if (!IsBuildingAnything(out int _)) {
+                    return true;
+                }
+            }
+
+            return false;
+        }
+
         public void PlanConstruction(int regionIndex, EBuilding building)
         {
             if (AnyDecisionsRemaining()) {
@@ -318,13 +329,7 @@ namespace LouveSystems.K2.Lib
                     return;
                 }
 
-                bool buildingIsFree = false;
-
-                if (Faction.HasFlagSafe(EFactionFlag.FirstBuildingIsFree)) {
-                    if (!IsBuildingAnything(out int _)) {
-                        buildingIsFree = true;
-                    }
-                }
+                bool buildingIsFree = IsNextBuildingFree();
 
                 // We add a build transform
                 RegionBuildTransform transform = new RegionBuildTransform(
@@ -455,12 +460,7 @@ namespace LouveSystems.K2.Lib
                 return false;
             }
 
-            bool buildingIsFree = false;
-            if (Faction.HasFlagSafe(EFactionFlag.FirstBuildingIsFree)) {
-                if (!IsBuildingAnything(out int _)) {
-                    buildingIsFree = true;
-                }
-            }
+            bool buildingIsFree = IsNextBuildingFree();
 
             if (!buildingIsFree && !CanAfford(settings.silverCost)) {
                 return false;

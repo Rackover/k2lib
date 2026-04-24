@@ -791,7 +791,7 @@ namespace LouveSystems.K2.Lib
                     regionIndex = build.actingRegionIndex,
                     forOwner = supposedOwner,
                     silverPricePaid = build.SilverCost,
-                    isFactionHighlight = build.IsPrioritized(in world)
+                    isFactionHighlight = build.IsPrioritized(in world) || (build.silverCost == 0 && world.GetRealmFaction(supposedOwner).HasFlagSafe(EFactionFlag.FirstBuildingIsFree))
                 });
             }
         }
