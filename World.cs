@@ -1183,27 +1183,22 @@ namespace LouveSystems.K2.Lib
         private Position[] SortPositionsByFurtherFromEachOther(List<Position> positions)
         {
             // Group distances that are the furthest from each other
-            List<Position> sortedPositions = new List<Position>(positions.Count);
-            while (positions.Count > 0) {
-                if (sortedPositions.Count == 0) {
-                    sortedPositions.Add(positions[0]);
-                    positions.RemoveAt(0);
-                }
-                else {
-                    Position gravityCenter = new Position();
-                    for (int existingPositionIndex = 0; existingPositionIndex < sortedPositions.Count; existingPositionIndex++) {
-                        gravityCenter += sortedPositions[existingPositionIndex];
-                    }
-
-                    gravityCenter /= sortedPositions.Count;
-
-                    positions.Sort((a, b) => b.SquaredDistanceWith(gravityCenter).CompareTo(a.SquaredDistanceWith(gravityCenter)));
-                    sortedPositions.Add(positions[0]);
-                    positions.RemoveAt(0);
-                }
+            if (positions.Count == 1) {
+                return new Position[] { positions[0] };
             }
 
-            return sortedPositions.ToArray();
+            if (positions.Count == 0) {
+                return new Position[0];
+            }
+
+            Position gravityCenter = new Position();
+            for (int existingPositionIndex = 0; existingPositionIndex < positions.Count; existingPositionIndex++) {
+                gravityCenter += positions[existingPositionIndex];
+            }
+
+            gravityCenter /= positions.Count;
+
+            return positions.OrderByDescending((o) => o.SquaredDistanceWith(gravityCenter)).ToArray();
         }
 
         private void InitializeCouncilRealm(byte realmIndex, in Position startingPosition)
