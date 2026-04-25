@@ -1191,14 +1191,31 @@ namespace LouveSystems.K2.Lib
                 return new Position[0];
             }
 
-            Position gravityCenter = new Position();
-            for (int existingPositionIndex = 0; existingPositionIndex < positions.Count; existingPositionIndex++) {
-                gravityCenter += positions[existingPositionIndex];
+            List<Position> positionsLeftToSort = new List<Position>(positions);
+            List<Position> newPositions = new List<Position>(positions.Count);
+
+            while (positionsLeftToSort.Count > 0) {
+                Position gravityCenter = new Position();
+
+                {
+                    List<Position> positionsToAvoid = newPositions.Count == 0 ? positionsLeftToSort : newPositions;
+
+                    for (int existingPositionIndex = 0; existingPositionIndex < positionsToAvoid.Count; existingPositionIndex++) {
+                        gravityCenter += positionsToAvoid[existingPositionIndex];
+                    }
+
+                    gravityCenter /= positionsToAvoid.Count;
+                }
+
+                Position pos = positionsLeftToSort.OrderByDescending((o) => o.SquaredDistanceWith(gravityCenter)).First();
+
+                bool removed = positionsLeftToSort.Remove(pos);
+                newPositions.Add(pos);
+
+                System.Diagnostics.Debug.Assert(removed);
             }
 
-            gravityCenter /= positions.Count;
-
-            return positions.OrderByDescending((o) => o.SquaredDistanceWith(gravityCenter)).ToArray();
+            return newPositions.ToArray();
         }
 
         private void InitializeCouncilRealm(byte realmIndex, in Position startingPosition)
