@@ -610,7 +610,7 @@ namespace LouveSystems.K2.Lib
 
                 var sortedOrders = attackOrders
                     .OrderBy(o => attacksPerRealm[regionOwner[o.AttackingRegionIndex]])
-                    .OrderBy(o => regionOwner[o.AttackingRegionIndex])
+                    .ThenBy(o => regionOwner[o.AttackingRegionIndex])
                     .ThenBy(o => o.attackType)
                     .ToArray(); // Extended attacks at the end
 
