@@ -112,27 +112,27 @@ namespace LouveSystems.K2.Lib
 
         public void PlanAttack(int fromRegionIndex, int toRegionIndex, ERegionAttackType type)
         {
-            if (AnyDecisionsRemaining()) {
-                if (gameSession.CurrentGameState.world.Regions[toRegionIndex].inert) {
-                    Logger.Warn($"Discarding attack plan {fromRegionIndex}=>{toRegionIndex}: target is inert");
-                    return;
-                }
+            if (gameSession.CurrentGameState.world.Regions[toRegionIndex].inert) {
+                Logger.Warn($"Discarding attack plan {fromRegionIndex}=>{toRegionIndex}: target is inert");
+                return;
+            }
 
-                if (gameSession.CurrentGameState.world.Regions[fromRegionIndex].inert) {
-                    Logger.Warn($"Discarding attack plan {fromRegionIndex}=>{toRegionIndex}: origin is inert");
-                    return;
-                }
+            if (gameSession.CurrentGameState.world.Regions[fromRegionIndex].inert) {
+                Logger.Warn($"Discarding attack plan {fromRegionIndex}=>{toRegionIndex}: origin is inert");
+                return;
+            }
 
-                List<int> neighbors = new List<int>(6);
-                gameSession.CurrentGameState.world.GetNeighboringRegions(fromRegionIndex, neighbors);
+            List<int> neighbors = new List<int>(6);
+            gameSession.CurrentGameState.world.GetNeighboringRegions(fromRegionIndex, neighbors);
 
-                RegionAttackRegionTransform transform = new RegionAttackRegionTransform(
-                    fromRegionIndex,
-                    toRegionIndex,
-                    attackType: type,
-                    RealmIndex
-                );
+            RegionAttackRegionTransform transform = new RegionAttackRegionTransform(
+                fromRegionIndex,
+                toRegionIndex,
+                attackType: type,
+                RealmIndex
+            );
 
+            if (AnyDecisionsRemaining() || transform.IsFree) {
                 Act(transform);
             }
             else {
