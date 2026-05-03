@@ -28,7 +28,7 @@ namespace LouveSystems.K2.Lib
 
         public bool CanReplay(GameRules rules)
         {
-            return isOwned && buildings.HasFlagSafe(EBuilding.Capital) && rules.capitalCanReplay;
+            return isOwned && RelevantBuilding.HasFlagSafe(EBuilding.Capital) && rules.capitalCanReplay;
         }
 
         public bool CannotBeTaken(GameRules rules, EFactionFlag byFaction)
@@ -38,7 +38,7 @@ namespace LouveSystems.K2.Lib
             }
 
             if (isOwned) {
-                if (buildings.HasFlagSafe(EBuilding.Capital)) {
+                if (RelevantBuilding.HasFlagSafe(EBuilding.Capital)) {
                     return !rules.subjugationForAll && !byFaction.HasFlagSafe(EFactionFlag.Subjugate);
                 }
             }
@@ -49,11 +49,11 @@ namespace LouveSystems.K2.Lib
         public bool IsReinforcedAgainstAttack(GameRules rules, EFactionFlag byFaction)
         {
             if ((rules.subjugationForAll || byFaction.HasFlagSafe(EFactionFlag.Subjugate))
-                && buildings.HasFlagSafe(EBuilding.Capital)) {
+                && RelevantBuilding.HasFlagSafe(EBuilding.Capital)) {
                 return true;
             }
 
-            return buildings.HasFlagSafe(EBuilding.Fort);
+            return RelevantBuilding.HasFlagSafe(EBuilding.Fort);
         }
 
         public int GetSilverWorth(EFactionFlag faction, GameRules rules)
@@ -65,9 +65,9 @@ namespace LouveSystems.K2.Lib
                 revenue *= rules.factions.richesSilverMultiplier;
             }
 
-            if (buildings != EBuilding.None) {
+            if (RelevantBuilding != EBuilding.None) {
 
-                var buildingRule = rules.GetBuilding(buildings.GetBuildingOrRawDecoy());
+                var buildingRule = rules.GetBuilding(RelevantBuilding);
 
                 if (buildingRule.silverRevenue != 0) {
                     revenue = buildingRule.silverRevenue;
