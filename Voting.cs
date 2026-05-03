@@ -510,7 +510,7 @@ namespace LouveSystems.K2.Lib
                     rules.GetVotingSetting(EVotingCriteria.MaxChurches).activeAfterCouncils <= gameState.councilsPassed) {
 
                     for (int i = 0; i < gameState.world.Regions.Count; i++) {
-                        if (gameState.world.Regions[i].buildings.HasFlagSafe(EBuilding.Church)) {
+                        if (gameState.world.Regions[i].RelevantBuilding.HasFlagSafe(EBuilding.Church)) {
                             pickedCriterias.Add(EVotingCriteria.MaxChurches);
                             break;
                         }
@@ -554,7 +554,7 @@ namespace LouveSystems.K2.Lib
                         GetRealmIndicesWithMostOf(gameState, (in GameState state, byte realmIndex) =>
                         {
                             List<int> regions = new();
-                            state.world.GetTerritoryOfRealm(realmIndex, regions, (region) => region.buildings != EBuilding.None, includeSubjugated: true);
+                            state.world.GetTerritoryOfRealm(realmIndex, regions, (region) => region.RelevantBuilding != EBuilding.None, includeSubjugated: true);
 
                             return regions.Count;
                         }, winnerRealmIndices, minScore: 3, stretchPercentageAllowed: 10, maxWinners: 2);
@@ -566,7 +566,7 @@ namespace LouveSystems.K2.Lib
                         GetRealmIndicesWithMostOf(gameState, (in GameState state, byte realmIndex) =>
                         {
                             List<int> regions = new();
-                            state.world.GetTerritoryOfRealm(realmIndex, regions, (region) => region.buildings == EBuilding.Church, includeSubjugated: true);
+                            state.world.GetTerritoryOfRealm(realmIndex, regions, (region) => region.RelevantBuilding.HasFlagSafe(EBuilding.Church), includeSubjugated: true);
                             return regions.Count;
                         }, winnerRealmIndices, minScore: 2, maxWinners: 2);
 

@@ -9,7 +9,8 @@ namespace LouveSystems.K2.Lib
         {
             //public bool IsFactionFeat => factionHighlights != EFactionFlag.None;
 
-            public bool Success => newOwningRealm != previousOwningRealm;
+            public bool Success => newOwningRealm != previousOwningRealm || 
+                (newOwningRealm == previousOwningRealm && factionHighlights.HasFlagSafe(EFactionFlag.SelfAttack));
 
             public byte attackingRealm;
             public int regionIndex;
@@ -30,7 +31,7 @@ namespace LouveSystems.K2.Lib
             public void Apply(in GameState previous, ref GameState next)
             {
                 if (Success) {
-                    if (previous.world.Regions[regionIndex].buildings == EBuilding.Capital) {
+                    if (previous.world.Regions[regionIndex].Building.HasFlagSafe(EBuilding.Capital)) {
                         // Do not modify
                         return;
                     }

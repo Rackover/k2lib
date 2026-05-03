@@ -226,5 +226,20 @@ namespace LouveSystems.K2.Lib
 
             return t;
         }
+
+        public static bool IsDecoy(this EBuilding building)
+        {
+            return building.HasFlagSafe(EBuilding.Decoy);
+        }
+
+        public static EBuilding GetBuildingOrRawDecoy(this EBuilding building)
+        {
+            return building.IsDecoy() ? EBuilding.Decoy : building;
+        }
+
+        public static EBuilding GetPretensedBuilding(this EBuilding building)
+        {
+            return building & ~EBuilding.Decoy;
+        }
     }
 }

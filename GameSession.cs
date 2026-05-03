@@ -35,7 +35,7 @@ namespace LouveSystems.K2.Lib
 
                 int buildingsCount = 0;
                 for (int regionIndex = 0; regionIndex < state.world.Regions.Count; regionIndex++) {
-                    if (state.world.Regions[regionIndex].buildings != EBuilding.None) {
+                    if (state.world.Regions[regionIndex].Building != EBuilding.None) {
                         buildingsCount++;
                     }
                 }

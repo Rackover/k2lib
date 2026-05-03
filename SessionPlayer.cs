@@ -324,8 +324,8 @@ namespace LouveSystems.K2.Lib
         {
             if (AnyDecisionsRemaining()) {
 
-                if (gameSession.CurrentGameState.world.Regions[regionIndex].buildings != EBuilding.None) {
-                    Logger.Warn($"Discarding construction plan {building} on {regionIndex}: target already hosts {gameSession.CurrentGameState.world.Regions[regionIndex].buildings}");
+                if (gameSession.CurrentGameState.world.Regions[regionIndex].RelevantBuilding != EBuilding.None) {
+                    Logger.Warn($"Discarding construction plan {building} on {regionIndex}: target already hosts {gameSession.CurrentGameState.world.Regions[regionIndex].Building}");
                     return;
                 }
 
@@ -442,7 +442,7 @@ namespace LouveSystems.K2.Lib
             }
 
 
-            if (gameSession.CurrentGameState.world.Regions[regionIndex].buildings != EBuilding.None) {
+            if (gameSession.CurrentGameState.world.Regions[regionIndex].RelevantBuilding != EBuilding.None) {
                 return false;
             }
 

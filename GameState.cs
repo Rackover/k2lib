@@ -78,8 +78,8 @@ namespace LouveSystems.K2.Lib
                     int regionIndex = territoryCache[territoryRegion];
                     World_OnRegionConquest(regionIndex, realmIndex, default);
 
-                    if (world.Regions[regionIndex].buildings != EBuilding.None) {
-                        World_OnRegionBuilt(regionIndex, world.Regions[regionIndex].buildings);
+                    if (world.Regions[regionIndex].Building != EBuilding.None) {
+                        World_OnRegionBuilt(regionIndex, world.Regions[regionIndex].RelevantBuilding);
                     }
                 }
 
@@ -118,7 +118,7 @@ namespace LouveSystems.K2.Lib
         private void World_OnRegionBuilt(int regionIndex, EBuilding building)
         {
             if (world.Regions[regionIndex].GetOwner(out byte owner)) {
-                statistics.realms[owner].NotifyBuildingConstructed(building);
+                statistics.realms[owner].NotifyBuildingConstructed(building.GetBuildingOrRawDecoy());
             }
 
             statistics.regions[regionIndex].buildingsConstructed++;
@@ -461,7 +461,7 @@ namespace LouveSystems.K2.Lib
                 if (world.GetRealmFaction(realm).HasFlagSafe(EFactionFlag.FortsCountAsCapital)) {
                     for (int i = 0; i < remainingRegionsToConnect.Count; i++) {
                         int regionIndex = remainingRegionsToConnect[i];
-                        if (world.Regions[regionIndex].buildings.HasFlagSafe(EBuilding.Fort)) {
+                        if (world.Regions[regionIndex].RelevantBuilding.HasFlagSafe(EBuilding.Fort)) {
                             startingPoints.Add(regionIndex);
                         }
                     }
@@ -658,7 +658,7 @@ namespace LouveSystems.K2.Lib
                 effect.previousOwningRealm = target.isOwned ? target.ownerIndex : byte.MaxValue;
                 effect.newOwningRealm = effect.previousOwningRealm;
 
-                effect.hadBuilding = target.buildings != EBuilding.None;
+                effect.hadBuilding = target.Building != EBuilding.None;
                 effect.isACoinFlip = majorityAttackingRealmIsACoinFlip;
                 effect.otherMajorityAttackersWhoLostCoinFlip = otherCoinFlippers.ToArray();
 
@@ -668,6 +668,10 @@ namespace LouveSystems.K2.Lib
                 }
                 if (transform.attackType.HasFlagSafe(ERegionAttackType.Slithering)) {
                     effect.factionHighlights |= EFactionFlag.SlitherAttacksBetweenRegions;
+                }
+
+                if (attackOwner == target.ownerIndex && attackingFaction.HasFlagSafe(EFactionFlag.SelfAttack)) {
+                    effect.factionHighlights |= EFactionFlag.SelfAttack;
                 }
 
                 if (target.CannotBeTaken(rules, attackingFaction)) {
@@ -695,8 +699,8 @@ namespace LouveSystems.K2.Lib
                     }
                 }
 
-                bool canLoot = !effect.Success && target.buildings != EBuilding.None;
-                if (target.buildings.HasFlagSafe(EBuilding.Fort)
+                bool canLoot = !effect.Success && target.RelevantBuilding != EBuilding.None;
+                if (target.Building.HasFlagSafe(EBuilding.Fort)
                     && effect.Success
                     && attackingFaction.HasFlagSafe(EFactionFlag.ConqueredFortsGivePayout)) {
 
@@ -712,9 +716,9 @@ namespace LouveSystems.K2.Lib
 
                 // Building capture is a prowess
                 if (effect.Success &&
-                    target.buildings != EBuilding.None &&
+                    target.RelevantBuilding != EBuilding.None &&
                     attackingFaction.HasFlagSafe(EFactionFlag.ConquestBuilding) &&
-                    target.buildings != EBuilding.Capital
+                    target.RelevantBuilding != EBuilding.Capital
                     ) {
                     effect.factionHighlights |= EFactionFlag.ConquestBuilding;
                 }
@@ -736,7 +740,7 @@ namespace LouveSystems.K2.Lib
                 if (canSubjugate && 
                     target.isOwned &&
                     effect.Success && 
-                    target.buildings == EBuilding.Capital) {
+                    target.RelevantBuilding.HasFlagSafe(EBuilding.Capital)) {
 
                     var subjugation = new ITransformEffect.SubjugationEffect() {
                         attackingRealmIndex = attackOwner,
@@ -791,7 +795,10 @@ namespace LouveSystems.K2.Lib
                     regionIndex = build.actingRegionIndex,
                     forOwner = supposedOwner,
                     silverPricePaid = build.SilverCost,
-                    isFactionHighlight = build.IsPrioritized(in world) || (build.silverCost == 0 && world.GetRealmFaction(supposedOwner).HasFlagSafe(EFactionFlag.FirstBuildingIsFree))
+                    isFactionHighlight =
+                        build.IsPrioritized(in world) ||
+                        (build.silverCost == 0 && world.GetRealmFaction(supposedOwner).HasFlagSafe(EFactionFlag.FirstBuildingIsFree)) ||
+                        (build.building.IsDecoy() && world.GetRealmFaction(supposedOwner).HasFlagSafe(EFactionFlag.CanBuildDecoys))
                 });
             }
         }

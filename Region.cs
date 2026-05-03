@@ -5,10 +5,15 @@ namespace LouveSystems.K2.Lib
 
     public struct Region : IBinarySerializableWithVersion
     {
+        public EBuilding Building {get { return buildings; } set { buildings = value; } }
+        public EBuilding PretensedBuilding => buildings.GetPretensedBuilding();
+        public EBuilding RelevantBuilding => buildings.GetBuildingOrRawDecoy();
+
         public bool inert;
         public bool isOwned;
         public byte ownerIndex;
-        public EBuilding buildings;
+
+        private EBuilding buildings;
 
         public bool GetOwner(out byte realmIndex)
         {
@@ -62,7 +67,7 @@ namespace LouveSystems.K2.Lib
 
             if (buildings != EBuilding.None) {
 
-                var buildingRule = rules.GetBuilding(buildings);
+                var buildingRule = rules.GetBuilding(buildings.GetBuildingOrRawDecoy());
 
                 if (buildingRule.silverRevenue != 0) {
                     revenue = buildingRule.silverRevenue;

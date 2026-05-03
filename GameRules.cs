@@ -6,7 +6,7 @@ namespace LouveSystems.K2.Lib
     [System.Serializable]
     public class GameRules : IBinarySerializable
     {
-        public const byte VERSION = 5;
+        public const byte VERSION = 6;
 
         [System.Serializable]
         public struct GlobalFactionSettings : IBinarySerializableWithVersion
@@ -44,6 +44,9 @@ namespace LouveSystems.K2.Lib
             public bool vassalsCanSubjugate;
             public byte subjugationAttacksRequired;
 
+            public bool scoutsCanDifferentiateDecoys;
+            public byte decoysSilverCost; // 5
+
             public FactionSettings[] factionFlags;
 
             public void Read(byte version, BinaryReader from)
@@ -75,6 +78,10 @@ namespace LouveSystems.K2.Lib
                     vassalsCanSubjugate = from.ReadBoolean();
                     subjugationAttacksRequired = from.ReadByte();
                 }
+
+                if (version >= 6) {
+                    decoysSilverCost = 5;
+                }
             }
 
             public void Write(BinaryWriter into)
@@ -92,6 +99,8 @@ namespace LouveSystems.K2.Lib
 
                 into.Write(vassalsCanSubjugate);
                 into.Write(subjugationAttacksRequired);
+
+                into.Write(decoysSilverCost);
             }
         }
 
@@ -385,6 +394,15 @@ namespace LouveSystems.K2.Lib
 
         public BuildingSettings GetBuilding(EBuilding building)
         {
+            if (building.IsDecoy()) {
+                BuildingSettings decoy = new BuildingSettings();
+                decoy.building = building;
+                decoy.canBeBuilt = true;
+                decoy.silverRevenue = 0;
+                decoy.silverCost = factions.decoysSilverCost;
+                return decoy;
+            }
+
             for (int i = 0; i < buildings.Length; i++) {
                 if (buildings[i].building == building) {
                     return buildings[i];

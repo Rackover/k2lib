@@ -239,9 +239,9 @@ namespace LouveSystems.K2.Lib
 
         private void TakeOwnershipOfRegion(int regionIndex, byte newOwningRealm, bool keepBuilding)
         {
-            if (!keepBuilding && regions[regionIndex].buildings != EBuilding.None) {
-                OnRegionDestroyed?.Invoke(regionIndex, regions[regionIndex].buildings, newOwningRealm);
-                regions[regionIndex].buildings = EBuilding.None;
+            if (!keepBuilding && regions[regionIndex].Building != EBuilding.None) {
+                OnRegionDestroyed?.Invoke(regionIndex, regions[regionIndex].Building, newOwningRealm);
+                regions[regionIndex].Building = EBuilding.None;
             }
 
             regions[regionIndex].ownerIndex = newOwningRealm;
@@ -251,7 +251,7 @@ namespace LouveSystems.K2.Lib
 
         public void ConstructBuilding(int regionIndex, EBuilding building)
         {
-            this.regions[regionIndex].buildings |= building;
+            this.regions[regionIndex].Building |= building;
 
             OnRegionBuilt?.Invoke(regionIndex, building);
         }
@@ -599,7 +599,7 @@ namespace LouveSystems.K2.Lib
             int silver;
             EFactionFlag lootingRealmFaction = GetRealmFaction(lootingRealm);
 
-            if (regions[regionIndex].buildings.HasFlagSafe(EBuilding.Capital) &&
+            if (regions[regionIndex].RelevantBuilding.HasFlagSafe(EBuilding.Capital) &&
                 regions[regionIndex].CannotBeTaken(rules, lootingRealmFaction)) {
                 silver = rules.silverLootedOnCapital;
             }
@@ -637,7 +637,10 @@ namespace LouveSystems.K2.Lib
                 return false;
             }
 
-            if (regions[regionIndex].IsOwnedBy(realmIndex)) {
+            EFactionFlag attackerFaction = GetRegionFaction(regionIndex);
+            bool canSelfAttack = attackerFaction.HasFlagSafe(EFactionFlag.SelfAttack);
+
+            if (regions[regionIndex].IsOwnedBy(realmIndex) && !canSelfAttack) {
                 return false;
             }
 
@@ -654,7 +657,7 @@ namespace LouveSystems.K2.Lib
                     realmIndex = myOwner;
                 }
 
-                if (regionOwner == realmIndex) {
+                if (regionOwner == realmIndex && !canSelfAttack) {
                     return false; // We're friends now
                 }
             }
@@ -726,7 +729,7 @@ namespace LouveSystems.K2.Lib
 
                             // Only allow slithering if there's an enemy fort between origin and destination
                             if (!regions[neighborRegionIndex].IsOwnedBy(regions[regionIndex].ownerIndex) 
-                                && regions[neighborRegionIndex].buildings != EBuilding.None
+                                && regions[neighborRegionIndex].RelevantBuilding != EBuilding.None
                                 && !IsCouncilRegion(neighborRegionIndex)
                             ) {
                                 isValidSlither = true;
@@ -916,7 +919,7 @@ namespace LouveSystems.K2.Lib
         public bool GetCapitalOfRealm(byte realmIndex, out int regionIndex)
         {
             for (regionIndex = 0; regionIndex < regions.Length; regionIndex++) {
-                if (regions[regionIndex].buildings.HasFlagSafe(EBuilding.Capital) && regions[regionIndex].IsOwnedBy(realmIndex)) {
+                if (regions[regionIndex].RelevantBuilding.HasFlagSafe(EBuilding.Capital) && regions[regionIndex].IsOwnedBy(realmIndex)) {
                     return true;
                 }
             }
@@ -1222,8 +1225,8 @@ namespace LouveSystems.K2.Lib
         {
             InitializeRealm(realmIndex, startingPosition, (byte)Math.Max(0, SquareSideLength - 3 + rules.councilRealmRegionSize));
             for (int i = 0; i < regions.Length; i++) {
-                if (IsCouncilRegion(i) && regions[i].buildings == EBuilding.None) {
-                    regions[i].buildings = EBuilding.Church;
+                if (IsCouncilRegion(i) && regions[i].RelevantBuilding == EBuilding.None) {
+                    regions[i].Building = EBuilding.Church;
                 }
             }
         }
@@ -1236,7 +1239,7 @@ namespace LouveSystems.K2.Lib
 
             ref Region region = ref regions[Index(startingPosition)];
 
-            region.buildings = EBuilding.Capital;
+            region.Building = EBuilding.Capital;
             region.ownerIndex = realmIndex;
             region.isOwned = true;
 

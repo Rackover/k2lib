@@ -7,6 +7,8 @@ namespace LouveSystems.K2.Lib
         Capital = 1,
         Fields= 1 << 1,
         Fort = 1 << 2,
-        Church = 1 << 3
+        Church = 1 << 3,
+
+        Decoy = 1 << 7
     }
 }
