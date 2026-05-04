@@ -80,6 +80,9 @@ namespace LouveSystems.K2.Lib
                 }
 
                 if (version >= 6) {
+                    decoysSilverCost = from.ReadByte();
+                }
+                else {
                     decoysSilverCost = 5;
                 }
             }
