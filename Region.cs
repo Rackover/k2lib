@@ -5,15 +5,20 @@ namespace LouveSystems.K2.Lib
 
     public struct Region : IBinarySerializableWithVersion
     {
-        public EBuilding Building {get { return buildings; } set { buildings = value; } }
+        public EBuilding Building {get { return buildings; } }
         public EBuilding PretensedBuilding => buildings.GetPretensedBuilding();
         public EBuilding RelevantBuilding => buildings.GetBuildingOrRawDecoy();
+
+        public bool WasBuiltForFree => silverPricePaid == 0;
+
+        public ushort SilverPricePaid => silverPricePaid;
 
         public bool inert;
         public bool isOwned;
         public byte ownerIndex;
 
         private EBuilding buildings;
+        private ushort silverPricePaid;
 
         public bool GetOwner(out byte realmIndex)
         {
@@ -88,7 +93,8 @@ namespace LouveSystems.K2.Lib
                 inert ? 1 : 0,
                 isOwned ? 1 : 0,
                 ownerIndex,
-                (int)buildings
+                (int)buildings,
+                silverPricePaid
             );
         }
 
@@ -98,6 +104,7 @@ namespace LouveSystems.K2.Lib
             into.Write(isOwned);
             into.Write(ownerIndex);
             into.Write((byte)buildings);
+            into.Write(silverPricePaid);
         }
 
         public void Read(byte version, BinaryReader from)
@@ -106,6 +113,22 @@ namespace LouveSystems.K2.Lib
             isOwned = from.ReadBoolean();
             ownerIndex = from.ReadByte();
             buildings = (EBuilding)from.ReadByte();
+
+            if (version >= 6) {
+                silverPricePaid = from.ReadUInt16();
+            }
+        }
+
+        public void AddBuilding(EBuilding building, int pricePaid=0)
+        {
+            this.silverPricePaid += (ushort)pricePaid;
+            this.buildings = building;
+        }
+
+        public void RemoveBuilding()
+        {
+            this.silverPricePaid = 0;
+            this.buildings = EBuilding.None;
         }
 
         public override string ToString()

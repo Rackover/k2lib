@@ -10,7 +10,7 @@ namespace LouveSystems.K2.Lib
 
     public struct GameState : IBinarySerializable
     {
-        const byte VERSION = 5;
+        const byte VERSION = 6;
 
         public int daysPassed;
         public int councilsPassed;
@@ -19,6 +19,7 @@ namespace LouveSystems.K2.Lib
         public Voting voting;
         public GameRules rules;
         public Statistics statistics; // Incremental
+        public IBoard board;
 
         public GameState(PartySessionInitializationParameters party, GameRules parameters)
         {
@@ -29,6 +30,7 @@ namespace LouveSystems.K2.Lib
             world = new World(party, parameters);
             voting = new Voting(parameters);
             statistics = new Statistics();
+            board = IBoard.CreateBoard(parameters.board, in world);
 
             InitializeStatistics();
             SuscribeToStatisticsEvents();
@@ -43,7 +45,8 @@ namespace LouveSystems.K2.Lib
             world = new World(other.world);
             voting = new Voting(other.voting);
             statistics = new Statistics(other.statistics);
-
+            board = other.board.Duplicate();
+            
             SuscribeToStatisticsEvents();
         }
 
@@ -237,8 +240,9 @@ namespace LouveSystems.K2.Lib
                 }
             }
 
-            // < Insert environmental turn here ? >
-
+            // Environmental turn
+            board.ComputeEffects(random, in this, out ITransformEffect[] environmentalEffects);
+            effectsList.AddRange(environmentalEffects);
 
             // Ongoing subjugation persistence
             {
@@ -328,7 +332,8 @@ namespace LouveSystems.K2.Lib
                     councilsPassed
                 ),
                 Extensions.Hash(world),
-                Extensions.Hash(voting)
+                Extensions.Hash(voting),
+                Extensions.Hash(board)
             );
         }
 
@@ -672,6 +677,12 @@ namespace LouveSystems.K2.Lib
 
                 if (attackOwner == target.ownerIndex && attackingFaction.HasFlagSafe(EFactionFlag.SelfAttack)) {
                     effect.factionHighlights |= EFactionFlag.SelfAttack;
+
+                    if (rules.factions.selfAttackReimbursesBuilding && 
+                        target.Building != EBuilding.None &&
+                        !target.WasBuiltForFree) {
+                        effect.silverLooted = target.SilverPricePaid;
+                    }
                 }
 
                 if (target.CannotBeTaken(rules, attackingFaction)) {

@@ -102,8 +102,10 @@ namespace LouveSystems.K2.Lib
         {
             this.rules = parameters;
 
+            bool hasCouncilRealm = parameters.board == EBoardType.CouncilRegion;
+
             int realmCountWithoutCouncil = parameters.additionalRealmsCount + playerParams.realmsToInitialize.Length;
-            int realmCount = realmCountWithoutCouncil + (parameters.hasCouncilRealm ? 1 : 0);
+            int realmCount = realmCountWithoutCouncil + (hasCouncilRealm ? 1 : 0);
 
             sideLength = CalculateSideLength(
                 parameters,
@@ -126,7 +128,7 @@ namespace LouveSystems.K2.Lib
                 throw new System.Exception($"Map is too small (needed to create {realms.Length} realms and have only {positions.Length}, square side is {squareSideLength})");
             }
 
-            if (parameters.hasCouncilRealm) {
+            if (hasCouncilRealm) {
                 Lib.Position middle = new Position(sideLength / 2, sideLength / 2);
                 Lib.Position councilPosition = middle;
                 int posIndex = -1;
@@ -154,7 +156,7 @@ namespace LouveSystems.K2.Lib
             startingPositions = positions;
 
             for (byte i = 0; i < realms.Length; i++) {
-                if (i == realms.Length - 1 && parameters.hasCouncilRealm) {
+                if (i == realms.Length - 1 && hasCouncilRealm) {
                     councilRealmIndex = i;
                     InitializeCouncilRealm(i, startingPositions[^1]);
                 }
@@ -241,7 +243,7 @@ namespace LouveSystems.K2.Lib
         {
             if (!keepBuilding && regions[regionIndex].Building != EBuilding.None) {
                 OnRegionDestroyed?.Invoke(regionIndex, regions[regionIndex].Building, newOwningRealm);
-                regions[regionIndex].Building = EBuilding.None;
+                regions[regionIndex].RemoveBuilding();
             }
 
             regions[regionIndex].ownerIndex = newOwningRealm;
@@ -249,9 +251,9 @@ namespace LouveSystems.K2.Lib
 
         }
 
-        public void ConstructBuilding(int regionIndex, EBuilding building)
+        public void ConstructBuilding(int regionIndex, EBuilding building, int silverCostPaid)
         {
-            this.regions[regionIndex].Building |= building;
+            this.regions[regionIndex].AddBuilding(building, silverCostPaid);
 
             OnRegionBuilt?.Invoke(regionIndex, building);
         }
@@ -428,7 +430,7 @@ namespace LouveSystems.K2.Lib
             // 5,6,7,8,9 => 3
 
             // Small hack to bump if we have 9 realms on a 3v3 grid so that the council can have the central space
-            if (realmCountWithoutCouncil == 9 && rules.hasCouncilRealm) {
+            if (realmCountWithoutCouncil == 9 && rules.board == EBoardType.CouncilRegion) {
                 realmCountWithoutCouncil++;
             }
 
@@ -637,7 +639,7 @@ namespace LouveSystems.K2.Lib
                 return false;
             }
 
-            EFactionFlag attackerFaction = GetRegionFaction(regionIndex);
+            EFactionFlag attackerFaction = GetRealmFaction(realmIndex);
             bool canSelfAttack = attackerFaction.HasFlagSafe(EFactionFlag.SelfAttack);
 
             if (regions[regionIndex].IsOwnedBy(realmIndex) && !canSelfAttack) {
@@ -654,11 +656,11 @@ namespace LouveSystems.K2.Lib
                 }
 
                 if (realms[realmIndex].IsSubjugated(out byte myOwner)) {
-                    realmIndex = myOwner;
+                    realmIndex = myOwner; // We're friends now
                 }
 
                 if (regionOwner == realmIndex && !canSelfAttack) {
-                    return false; // We're friends now
+                    return false; 
                 }
             }
 
@@ -1226,7 +1228,7 @@ namespace LouveSystems.K2.Lib
             InitializeRealm(realmIndex, startingPosition, (byte)Math.Max(0, SquareSideLength - 3 + rules.councilRealmRegionSize));
             for (int i = 0; i < regions.Length; i++) {
                 if (IsCouncilRegion(i) && regions[i].RelevantBuilding == EBuilding.None) {
-                    regions[i].Building = EBuilding.Church;
+                    regions[i].AddBuilding(EBuilding.Church);
                 }
             }
         }
@@ -1239,7 +1241,7 @@ namespace LouveSystems.K2.Lib
 
             ref Region region = ref regions[Index(startingPosition)];
 
-            region.Building = EBuilding.Capital;
+            region.AddBuilding(EBuilding.Capital);
             region.ownerIndex = realmIndex;
             region.isOwned = true;
 
