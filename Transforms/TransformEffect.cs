@@ -131,7 +131,7 @@ namespace LouveSystems.K2.Lib
 
                 if (next.world.IsActionableRegion(forOwner, regionIndex)) {
 
-                    next.world.ConstructBuilding(regionIndex, building);
+                    next.world.ConstructBuilding(regionIndex, building, silverPricePaid);
                     next.world.AddSilverTreasury(regionOwner, -silverPricePaid);
                 }
             }

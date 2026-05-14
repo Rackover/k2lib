@@ -6,7 +6,7 @@ namespace LouveSystems.K2.Lib
     [System.Serializable]
     public class GameRules : IBinarySerializable
     {
-        public const byte VERSION = 6;
+        public const byte VERSION = 8;
 
         [System.Serializable]
         public struct GlobalFactionSettings : IBinarySerializableWithVersion
@@ -47,6 +47,8 @@ namespace LouveSystems.K2.Lib
             public bool scoutsCanDifferentiateDecoys;
             public byte decoysSilverCost; // 5
 
+            public bool selfAttackReimbursesBuilding;
+
             public FactionSettings[] factionFlags;
 
             public void Read(byte version, BinaryReader from)
@@ -80,7 +82,17 @@ namespace LouveSystems.K2.Lib
                 }
 
                 if (version >= 6) {
+                    decoysSilverCost = from.ReadByte();
+                }
+                else {
                     decoysSilverCost = 5;
+                }
+
+                if (version >= 7) {
+                    selfAttackReimbursesBuilding = from.ReadBoolean();
+                }
+                else {
+                    selfAttackReimbursesBuilding = true;
                 }
             }
 
@@ -101,6 +113,7 @@ namespace LouveSystems.K2.Lib
                 into.Write(subjugationAttacksRequired);
 
                 into.Write(decoysSilverCost);
+                into.Write(selfAttackReimbursesBuilding);
             }
         }
 
@@ -221,7 +234,7 @@ namespace LouveSystems.K2.Lib
 
         public byte additionalRealmsCount = 1;
 
-        public bool hasCouncilRealm = true;
+        public EBoardType board =  EBoardType.CouncilRegion;
 
         public byte councilRealmRegionSize = 1;
 
@@ -284,7 +297,7 @@ namespace LouveSystems.K2.Lib
             into.Write(initialRealmsSize);
             into.Write(additionalRealmsCount);
             into.Write(councilRealmRegionSize);
-            into.Write(hasCouncilRealm);
+            into.Write((byte)board);
             into.Write(startingGold);
             into.Write(initialSafetyMarginBetweenRealms);
             into.Write(initialVoteTurnsDelay);
@@ -333,7 +346,7 @@ namespace LouveSystems.K2.Lib
             initialRealmsSize = from.ReadByte();
             additionalRealmsCount = from.ReadByte();
             councilRealmRegionSize = from.ReadByte();
-            hasCouncilRealm = from.ReadBoolean();
+            board = (EBoardType)from.ReadByte();
             startingGold = from.ReadByte();
             initialSafetyMarginBetweenRealms = from.ReadByte();
             initialVoteTurnsDelay = from.ReadByte();
