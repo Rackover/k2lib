@@ -79,6 +79,14 @@ namespace LouveSystems.K2.Lib
             {
                 next.world.StarveRegion(regionIndex, hasNewOwner, newOwningRealm);
             }
+
+            public override string ToString()
+            {
+                if (hasNewOwner)
+                    return $"{GetType()} on region {regionIndex} with new owner: {newOwningRealm} [wave {waveIndex} - coinFlip? {wasCoinFlip}]";
+                else
+                    return $"{GetType()} on region {regionIndex} no new owner [wave {waveIndex} - coinFlip? {wasCoinFlip}]";
+            }
         }
 
         public struct ConstructionEffect : ITransformEffect
@@ -176,6 +184,11 @@ namespace LouveSystems.K2.Lib
                 attacksBefore = previous.world.Realms[targetRealmIndex].GetSubjugatingAttacksReceived(attackingRealmIndex);
                 subjugationCompleted = next.world.AttemptSubjugation(attackingRealmIndex, targetRealmIndex);
                 attacksAfter = next.world.Realms[targetRealmIndex].GetSubjugatingAttacksReceived(attackingRealmIndex);
+            }
+
+            public override string ToString()
+            {
+                return $"{GetType()} by realm {attackingRealmIndex} (highlight {isFactionHighlight}) on {targetRealmIndex} (attackBefore: {attacksBefore} attackAfter: {attacksAfter}). SubjugationCompleted? {subjugationCompleted}";
             }
         }
 

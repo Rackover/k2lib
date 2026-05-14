@@ -805,6 +805,7 @@ namespace LouveSystems.K2.Lib
                     potentialOwners.Add(kv.Key);
                 }
             }
+            potentialOwners.Sort(); // necessary to avoid relying on Dictionnary<> enumeration order
 
             newOwner = default;
             wasCoinFlip = false;

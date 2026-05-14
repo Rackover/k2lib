@@ -510,7 +510,10 @@ namespace LouveSystems.K2.Lib
                 }
 
                 // Higher score => higher priority
-                remainingRegionsToConnect.Sort((a, b) => isolationScoreForRegion[b].CompareTo(isolationScoreForRegion[a]));
+                remainingRegionsToConnect = remainingRegionsToConnect
+                    .OrderByDescending((regionId) => { return isolationScoreForRegion[regionId]; })
+                    .ThenBy((regionId) => { return regionId; })
+                    .ToList();
             }
 
             // 5. Solve each region. If a region does not have a clear owner, skip it for now
@@ -819,6 +822,10 @@ namespace LouveSystems.K2.Lib
                         Position position = world.Position(o.actingRegionIndex);
                         return position.SquaredDistanceWith(default);
                     })
+                    .ThenBy((o) =>
+                    {
+                        return o.UniqueID;
+                    })
                     .ToList();
 
             return builds.ToList();
@@ -847,8 +854,13 @@ namespace LouveSystems.K2.Lib
                     })
                     .ThenBy((o) =>
                     {
+                        // wave effect, attack starts at the top-left
                         Position position = world.Position(o.targetRegionIndex);
                         return position.SquaredDistanceWith(default);
+                    })
+                    .ThenBy((o) =>
+                    {
+                        return o.UniqueID;
                     })
                     .ToList();
 
